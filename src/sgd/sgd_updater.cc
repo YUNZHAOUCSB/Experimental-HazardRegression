@@ -62,7 +62,7 @@ void SGDUpdater::SoftThresh(real_t& w, real_t grad, real_t lr, real_t l1) {
 void SGDUpdater::FLSAIsotonic(feaid_t feaid) {
     std::vector<real_t> vct(ordinal_.size());
     RestoreOrdinal(feaid, vct);
-    IsotonicDp(vct.data(), vct.size(), param_.l2, 5000);
+    IsotonicDp(vct.data(), vct.size(), param_.l2*param_.lr, 5000);
     StoreChanges(feaid, vct);
 }
 
