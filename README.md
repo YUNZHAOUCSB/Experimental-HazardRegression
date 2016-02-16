@@ -1,9 +1,9 @@
 # Experimental-HazardRegression (Attributing Hacks) with Trend Filtering
 
 ## Features
-  * Allow Dynamic Parameter Spaces
+  * Allow dynamic parameter spaces
   * No features preprocessing
-  * Optimize with Soft-thresholding and Isotonic FLSA
+  * Online learning with isotonic fussed lasso signal approximator
 
 ## Data
   * Currrently support libsvm format
