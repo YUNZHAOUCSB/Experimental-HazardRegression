@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 by Contributors
+ * Copyright (c) 2016 by Contributors
  * \author Ziqi Liu
  */
 #include "hazard/learner.h"

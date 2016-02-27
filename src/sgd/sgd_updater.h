@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 by Contributors
+ * Copyright (c) 2016 by Contributors
  * \author Ziqi Liu
  */
 
@@ -14,12 +14,16 @@
 #include "hazard/updater.h"
 
 namespace hazard {
+
+/** \brief models for each feature
+    a tree allowing O(\log n) search,
+    insertion and deletion.
+*/
 struct SGDEntry {
 public:
     SGDEntry() {}
     ~SGDEntry() {}
 
-    uint32_t fea_cnt;
     std::map<time_t, real_t> w;
     inline size_t Size() {
         return w.size();
@@ -29,8 +33,7 @@ public:
     }
     inline bool GreastLowerBound(time_t key, time_t& key_out) {
         auto it = w.lower_bound(key);
-        if (it == w.cend()) {key_out = (--it)->first; return false;}
-        else if(it->first == key) {key_out = key; return true;}
+        if(it->first == key) {key_out = key; return true;}
         else {key_out = (--it)->first; return false;}
     }
 };
@@ -75,7 +78,7 @@ public:
         MsgElt init_knot_;
         MsgElt end_knot_;
 
-        void BackTrace(real_t * x_hat, int seq_len, real_t * back_pointers,
+        void BackTrace(real_t * x_hat, size_t seq_len, real_t * back_pointers,
                        real_t last_msg_max) {
             real_t z = x_hat[seq_len - 1] = last_msg_max;
             real_t * x0 = x_hat + seq_len - 2;
@@ -91,22 +94,19 @@ public:
                 }
             }
         }
-        void FirstMsg(int init_sz, real_t lin, real_t quad,
+        void FirstMsg(size_t init_sz, real_t lin, real_t quad,
                       real_t lambda2, real_t * bp) {
             len_ = 3;
-            start_idx_ = init_sz / 2;
+            start_idx_ = (int)init_sz / 2;
 
             buf_.resize(init_sz);
 
-            //int buf_sz = buf_.size();
-            bp[0] = 0xF0000000;
+            bp[0] = -1.0/0.0;
             bp[1] = (-lambda2 - lin) / (2.0 * quad);
-
-            //int new_knot_start = start_idx_;
 
             // update the message and add the new knots
             MsgElt * k0 = &buf_[start_idx_];
-            k0->x_ = 0xF0000000;
+            k0->x_ = -1.0/0.0;
             k0->sgn_ = true;
             k0->lin_ = lin;
             k0->quad_ = quad;
@@ -115,7 +115,7 @@ public:
 
             real_t const_shift = bp[1] * lin + bp[1] * bp[1] * quad + lambda2 * bp[1];
             k0 = &buf_[start_idx_+2];
-            k0->x_ = 0x10000000;
+            k0->x_ = 1.0/0.0;
             k0->sgn_ = false;
             k0->lin_ = -lambda2;
             k0->quad_ = 0.0;
@@ -137,10 +137,10 @@ public:
             // Assumes that buf_[0] and buf_[1] contain the end-point knots and
             // that we do not need to create them.
 
-            buf_[start_idx_].x_ = 0xF0000000;
-            buf_[start_idx_ + len_ - 1].x_ = 0xF0000000;
+            buf_[start_idx_].x_ = -1.0/0.0;
+            buf_[start_idx_ + len_ - 1].x_ = 1.0/0.0;
 
-            bp[0] = 0xF0000000;
+            bp[0] = -1.0/0.0;
 
             real_t lin_right = lin, quad_right = quad;
             int new_knot_end = -2;
@@ -251,7 +251,6 @@ public:
         }
         real_t MaxMsg() {
             const std::vector<MsgElt>& buf = buf_;
-            //int buf_sz = buf.size();
             real_t lin_left = 0.0, quad_left = 0.0;
 
             int last_idx = start_idx_ + len_ - 1;
@@ -261,7 +260,6 @@ public:
                 const MsgElt& k = (knot_idx == start_idx_) ?
                     init_knot_ :
                     (end_knot ? end_knot_ : buf[knot_idx]);
-                //real_t x0 = k.x_;
                 real_t x1 = (knot_idx == last_idx-1) ? end_knot_.x_ : buf[knot_idx + 1].x_;
 
                 if (k.sgn_) {
@@ -283,7 +281,7 @@ public:
             }
 
             LOG(ERROR) << "FLSA::MaxMsg : failed to maximize message\n";
-            return 0xF0000000;
+            return -1.0/0.0;
         }
     }; // class Msg
 
@@ -293,21 +291,27 @@ public:
     KWArgs Init(const KWArgs& kwargs) override {return kwargs;}
     KWArgs Init(const KWArgs& kwargs,
                 const SGDLearnerParam& sgdlparam);
+    void InitEpoch(size_t epoch);
     void Update() override {}
     void Update(SGDModel& grad);
     std::pair<real_t, real_t> CHazardFea(feaid_t feaid,
                                          time_t censor);
-    void SoftThresh(real_t& w, real_t grad, real_t lr, real_t l1);
-    void RestoreOrdinal(feaid_t feaid, std::vector<real_t>&);
-    void IsotonicDp(real_t*, int, real_t, int);
-    void StoreChanges(feaid_t feaid, std::vector<real_t>&);
+    inline real_t SoftThresh(real_t w);
+    void CalcFldpX(SGDEntry&, std::vector<real_t>&, std::vector<time_t>&);
+    void CalcFldpW(SGDEntry&, std::vector<real_t>&);
+    void UpdateGradient(feaid_t feaid, SGDEntry& entry);
+    void IsotonicDp(real_t*, size_t, real_t, size_t, real_t*);
+    void StoreChanges(feaid_t feaid, std::vector<real_t>&, std::vector<time_t>&);
     void FLSAIsotonic(feaid_t feaid);
 
+    time_t starttime_;
+    /**
+     *  \brief cumulative data count before current time point
+     */
+    std::unordered_map<time_t, size_t> cumu_cnt_;
 private:
     SGDModel model_;
     SGDUpdaterParam param_;
-    std::vector<time_t> ordinal_;
-    time_t starttime_;
     int nthreads_;
 }; //class SGDUpdater
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 by Contributors
+ * Copyright (c) 2016 by Contributors
  * \author Ziqi Liu
  */
 
@@ -11,7 +11,7 @@ namespace hazard {
 DMLC_REGISTER_PARAMETER(SGDUpdaterParam);
 
     Updater* Updater::Create(const std::string& type) {
-        if (type == "sgd_dynamic") {
+        if (type == "sgd") {
             return new SGDUpdater();
         } else {
             LOG(FATAL) << "unknown updater type: " << type;

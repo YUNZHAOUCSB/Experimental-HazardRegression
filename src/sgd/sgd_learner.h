@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 by Contributors
+ * Copyright (c) 2016 by Contributors
  * \author Ziqi Liu
  */
 
@@ -13,6 +13,8 @@
 #include "data/batch_iter.h"
 #include "dmlc/data.h"
 #include "data/row_block.h"
+#include <unordered_set>
+#include <set>
 
 namespace hazard {
 class SGDLearner : public Learner {
@@ -21,42 +23,129 @@ public:
     ~SGDLearner(){
         delete updater_;
     }
+
     KWArgs Init(const KWArgs& kwargs) override {
         KWArgs remain = param_.InitAllowUnknown(kwargs);
         updater_ = (SGDUpdater*)Updater::Create(param_.updater_type);
         remain = updater_->Init(remain, param_);
+        // construct feat_set_ and updater_.cumu_cnt_
+        std::unordered_map<feaid_t, size_t> feat_cnt;
+        std::set<time_t> ordinal;
+        BatchIter reader(param_.data_in, param_.data_format,
+                         0, 1, param_.batch_size);
+        while(reader.Next()) {
+            const dmlc::RowBlock<feaid_t>& data = reader.Value();
+            for (size_t i=0; i<data.size; i++) {
+                const dmlc::Row<feaid_t>& d = data[i];
+                uint8_t label = (uint8_t)d.label;
+                ordinal.insert(d.index[0]);
+                if (label) ordinal.insert(d.index[1]);
+                for (size_t j = 2; j<d.length; j++) {
+                    feaid_t feaid = d.index[j];
+                    feat_cnt[feaid] += 1;
+                }
+            }
+        }
+        //construct feat_set_
+        for (auto f : feat_cnt) {
+            feaid_t feaid = f.first;
+            if (feaid >= param_.feat_thresh) {
+                feat_set_.insert(feaid);
+            }
+        }
+        //construct cumu_cnt_
+        auto it = ordinal.cbegin();
+        auto it0 = ordinal.cbegin();
+        updater_->starttime_ = *it;
+        updater_->cumu_cnt_[*it] = 0;
+        it++;
+        for (; it!=ordinal.cend(); it++, it0++) {
+            updater_->cumu_cnt_[*it] = updater_->cumu_cnt_[*(it0)] + 1;
+        }
+        // init loss_
         loss_.clear();
         loss_.resize(param_.batch_size);
+
         return remain;
     }
+
+    void CalcRes(const dmlc::RowBlock<feaid_t>& data, std::string type) {
+        real_t res = 0.0f;
+#pragma omp parallel for reduction(+:res) num_threads(param_.nthreads)
+        for (size_t i=0; i<data.size; i++) {
+            const dmlc::Row<feaid_t>& d = data[i];
+            uint8_t label = (uint8_t) d.label;
+            if (label) {
+                res += -std::log(std::exp(-std::get<2>(loss_[i]))
+                                 - std::exp(-std::get<0>(loss_[i])));
+            } else {
+                res += std::get<0>(loss_[i]);
+            }
+        }
+        if(type == "training") train_loss_ += res;
+        else val_loss_ += res;
+    }
+
+    void PrintRes(size_t epoch) {
+        LOG(INFO) << "Iter\t" << epoch << "\tTraining\t"
+            << train_loss_ << "\tValidation\t" << val_loss_
+                  << "\n";
+    }
+
+    void InitEpoch(size_t epoch) {
+        train_loss_ = 0.0f; val_loss_ = 0.0f;
+    }
+
     void Run() override {
-        for (uint32_t epoch=0; epoch < param_.max_num_epochs; epoch++) {
+        for (uint32_t epoch=1; epoch <= param_.max_num_epochs; epoch++) {
+            InitEpoch(epoch);
             RunEpoch(epoch, "training");
-            RunEpoch(epoch, "validating");
+            RunEpoch(epoch, "validation");
+            PrintRes(epoch);
         }
     }
+
     void RunEpoch(uint32_t epoch, std::string type) {
         std::string filename = "training" == type ? param_.data_in :
             param_.val_data;
+        updater_->InitEpoch(epoch);
         BatchIter reader(filename, param_.data_format,
                          0, 1, param_.batch_size);
         while(reader.Next()) {
             const dmlc::RowBlock<feaid_t>& data = reader.Value();
             CalcLoss(data);
-            CalcGrad(data);
-            updater_->Update(model_gradient_);
+            CalcRes(data, type);
+            if ("training" == type) {
+                CalcGrad(data);
+                updater_->Update(gradients_);
+            }
         }
     }
-    std::pair<real_t, real_t> GenGrad(uint8_t label,
-                                      time_t censor,
-                                      size_t x);
+
+    std::pair<real_t, real_t> GenGrad(uint8_t label, size_t x);
     void CalcLoss(const dmlc::RowBlock<feaid_t>& data);
     void CalcGrad(const dmlc::RowBlock<feaid_t>& data);
+
 private:
     SGDLearnerParam param_;
+    /** \brief updater specified */
     SGDUpdater* updater_;
-    SGDModel model_gradient_;
+    /** \brief gradients computed in each minibatch */
+    SGDModel gradients_;
+    /**
+     *  \brief
+     *   hazard cumulative at right censoring time
+     *   hazard rate at right censoring time
+     *   hazard cumulative at left censoring time
+     *   hazard rate at left censoring time
+    */
     std::vector<std::tuple<real_t, real_t, real_t, real_t>> loss_;
+    /**
+     *  \brief whether a feature in active set
+     */
+    std::unordered_set<feaid_t> feat_set_;
+    real_t train_loss_;
+    real_t val_loss_;
 };  // class SGDLearner
 
 }
