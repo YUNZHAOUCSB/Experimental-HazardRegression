@@ -139,12 +139,19 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
         time_t tt = e.first;
         real_t val = e.second;
         time_t k;
+        real_t temp = 0.0f;
         if (model_entry.GreastLowerBound(tt, k)) {
+            temp = model_entry[tt];
             model_entry[tt] -= param_.eta * val;
         }
         else {
             model_entry[tt] = model_entry[k];
+            temp = model_entry[tt];
             model_entry[tt] -= param_.eta * val;
+        }
+        if (param_.concave_penalty) {
+            model_entry[tt] -= param_.eta * param_.lconcave *
+                (1.0/(temp+param_.epsilon));
         }
     }
 }
