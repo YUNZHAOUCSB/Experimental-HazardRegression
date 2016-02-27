@@ -81,9 +81,14 @@ void SGDUpdater::StoreChanges(feaid_t feaid, std::vector<real_t>& x
     SGDEntry& entry = model_[feaid];
     entry.w.clear();
     size_t i = 0;
-    entry[k[i]] =  SoftThresh(x[i]); i++;
+    real_t prev, cur;
+    prev = SoftThresh(x[i]); entry[k[i]] =  prev; i++;
     for (; i<x.size(); i++) {
-        if (x[i] != x[i-1]) entry[k[i]] = SoftThresh(x[i]);
+        cur = SoftThresh(x[i]);
+        if (prev != cur) {
+            entry[k[i]] = cur;
+            prev = cur;
+        }
     }
 }
 
