@@ -69,6 +69,12 @@ public:
         return remain;
     }
 
+    inline real_t LogMinus(real_t cumul, real_t cumur) {
+        CHECK_NE(cumul, cumur);
+        cumul = -cumul; cumur = -cumur;
+        return cumul + std::log(1.0f - std::exp(cumur - cumul));
+    }
+
     void CalcRes(const dmlc::RowBlock<feaid_t>& data, std::string type) {
         real_t res = 0.0f;
 #pragma omp parallel for reduction(+:res) num_threads(param_.nthreads)
@@ -76,8 +82,7 @@ public:
             const dmlc::Row<feaid_t>& d = data[i];
             uint8_t label = (uint8_t) d.label;
             if (label) {
-                res += -std::log(std::exp(-std::get<2>(loss_[i]))
-                                 - std::exp(-std::get<0>(loss_[i])));
+                res += -LogMinus(std::get<2>(loss_[i]), std::get<0>(loss_[i]));
             } else {
                 res += std::get<0>(loss_[i]);
             }

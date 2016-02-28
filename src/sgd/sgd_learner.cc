@@ -43,12 +43,16 @@ inline std::pair<real_t, real_t> SGDLearner::GenGrad(uint8_t label,
         return std::make_pair(std::get<1>(loss_[x]), 0.0f);
     }
     else {
-        real_t sr = exp(-std::get<0>(loss_[x]));
-        real_t sl = exp(-std::get<2>(loss_[x]));
-        real_t denom = sl - sr;
-        sr *= -std::get<1>(loss_[x]) * 1.0f/denom;
-        sl *= std::get<3>(loss_[x]) * 1.0f/denom;
-        return std::make_pair(sr, sl);
+        real_t rcumuhr = std::get<0>(loss_[x]);
+        real_t rhr = std::get<1>(loss_[x]);
+        real_t lcumuhr = std::get<2>(loss_[x]);
+        real_t lhr = std::get<3>(loss_[x]);
+        real_t log_interval = LogMinus(lcumuhr, rcumuhr);
+        real_t log_r = -rcumuhr + std::log(rhr);
+        real_t log_l = -lcumuhr + std::log(lhr);
+        real_t rgrad = -std::exp(log_r - log_interval);
+        real_t lgrad = std::exp(log_l - log_interval);
+        return std::make_pair(rgrad, lgrad);
     }
 }
 
