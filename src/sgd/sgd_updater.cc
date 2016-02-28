@@ -3,9 +3,9 @@
  * \author Ziqi Liu
  */
 
-#include <omp.h>
 #include "./sgd_updater.h"
 #include "data/batch_iter.h"
+
 namespace hazard {
 KWArgs SGDUpdater::Init(const KWArgs& kwargs,
                         const SGDLearnerParam& sgdlparam) {
@@ -157,10 +157,16 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
 }
 
 void SGDUpdater::Update(SGDModel& grad) {
-//#pragma omp parallel for num_threads(nthreads_)
+    std::vector<feaid_t> feats(grad.Size());
+    size_t i=0;
     for (auto g : grad.model_map_) {
         feaid_t feaid = g.first;
-        UpdateGradient(feaid, g.second);
+        feats[i++] = feaid;
+    }
+#pragma omp parallel for num_threads(nthreads_)
+    for (i=0; i<feats.size(); i++) {
+        feaid_t feaid = feats[i];
+        UpdateGradient(feaid, grad[feaid]);
         FLSAIsotonic(feaid);
     }
 }

@@ -6,12 +6,13 @@
 #ifndef HAZARD_SGD_SGD_UPDATER_H_
 #define HAZARD_SGD_SGD_UPDATER_H_
 
-#include <vector>
-#include <map>
-#include <unordered_map>
 #include "./sgd_param.h"
 #include "hazard/base.h"
 #include "hazard/updater.h"
+#include <omp.h>
+#include <vector>
+#include <map>
+#include <unordered_map>
 
 namespace hazard {
 
@@ -48,6 +49,9 @@ public:
     }
     inline void Clear() {
         model_map_.clear();
+    }
+    inline size_t Size() {
+        return model_map_.size();
     }
 
     std::unordered_map<feaid_t, SGDEntry> model_map_;

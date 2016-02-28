@@ -3,8 +3,8 @@
  * \author Ziqi Liu
  */
 
-#include <omp.h>
 #include "./sgd_learner.h"
+#include <mutex>
 
 namespace hazard {
 
@@ -57,20 +57,23 @@ inline std::pair<real_t, real_t> SGDLearner::GenGrad(uint8_t label,
 }
 
 void SGDLearner::CalcGrad(const dmlc::RowBlock<feaid_t>& data) {
+    std::mutex m;
     gradients_.Clear();
+#pragma omp parallel for num_threads(param_.nthreads)
     for (size_t i=0; i<data.size; i++) {
         const dmlc::Row<feaid_t>& d = data[i];
         uint8_t label = (uint8_t)d.label;
         time_t rcensor, lcensor;
         rcensor = d.index[0]; lcensor = d.index[1];
         std::pair<real_t, real_t> grad = GenGrad(label, i);
-#pragma omp parallel for num_threads(param_.nthreads)
         for (size_t j=2; j<d.length; j++) {
             feaid_t feaid = d.index[j];
             if (!feat_set_.count(feaid)) continue;
+            m.lock();
             auto entry = gradients_[feaid];
             entry[rcensor] += grad.first;
             if (label) entry[lcensor] += grad.second;
+            m.unlock();
         }
     }
 }
