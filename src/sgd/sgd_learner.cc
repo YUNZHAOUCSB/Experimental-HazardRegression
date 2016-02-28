@@ -10,6 +10,7 @@ namespace hazard {
 
 void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data) {
     loss_.clear();
+    std::mutex m;
 #pragma omp parallel for num_threads(param_.nthreads)
     for (size_t i=0; i<data.size; i++) {
         const dmlc::Row<feaid_t>& d = data[i];
@@ -20,6 +21,9 @@ void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data) {
         for(size_t j=2; j<d.length; j++) {
             feaid_t feaid = d.index[j];
             if (!feat_set_.count(feaid)) continue;
+            m.lock();
+            updater_->Exist(feaid);
+            m.unlock();
             if(label) {
                 res = updater_->CHazardFea(feaid, rcensor);
                 std::get<0>(loss_[i]) += res.first;
@@ -27,8 +31,7 @@ void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data) {
                 res = updater_->CHazardFea(feaid, lcensor);
                 std::get<2>(loss_[i]) += res.first;
                 std::get<3>(loss_[i]) += res.second;
-            }
-            else {
+            } else {
                 res = updater_->CHazardFea(feaid, rcensor);
                 std::get<0>(loss_[i]) += res.first;
                 std::get<1>(loss_[i]) += res.second;

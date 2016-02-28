@@ -298,6 +298,11 @@ public:
     void InitEpoch(size_t epoch);
     void Update() override {}
     void Update(SGDModel& grad);
+    inline void Exist(feaid_t feaid) {
+        SGDEntry& entry = model_[feaid];
+        if(entry.Size() == 0)
+            entry[starttime_] = param_.init_hrate;
+    }
     std::pair<real_t, real_t> CHazardFea(feaid_t feaid,
                                          time_t censor);
     inline real_t SoftThresh(real_t w);

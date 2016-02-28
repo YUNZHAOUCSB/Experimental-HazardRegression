@@ -39,7 +39,7 @@ namespace hazard {
             DMLC_DECLARE_FIELD(lr).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(eta).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(decay).set_range(0.0f,1.0f).set_default(1);
-            DMLC_DECLARE_FIELD(init_hrate).set_default(1e-3);
+            DMLC_DECLARE_FIELD(init_hrate).set_default(1e-1);
             DMLC_DECLARE_FIELD(concave_penalty).set_default(true);
         }
     }; //class SGDUpdaterParam

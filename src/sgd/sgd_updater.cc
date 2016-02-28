@@ -20,8 +20,6 @@ void SGDUpdater::InitEpoch(size_t epoch) {
 
 std::pair<real_t, real_t> SGDUpdater::CHazardFea(feaid_t feaid, time_t censor) {
     SGDEntry& entry = model_[feaid];
-    if(entry.Size() == 0)
-        entry[starttime_] = param_.init_hrate;
     real_t hcumulative = 0.0f;
     real_t hrate = 0.0f;
     time_t k;
