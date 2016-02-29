@@ -312,6 +312,7 @@ public:
     void IsotonicDp(real_t*, size_t, real_t, size_t, real_t*);
     void StoreChanges(feaid_t feaid, std::vector<real_t>&, std::vector<time_t>&);
     void FLSAIsotonic(feaid_t feaid);
+    void SaveModel(FILE* f);
 
     time_t starttime_;
     /**

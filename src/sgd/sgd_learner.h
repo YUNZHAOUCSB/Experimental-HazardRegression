@@ -99,6 +99,19 @@ public:
 
     void InitEpoch(size_t epoch) {
         train_loss_ = 0.0f; val_loss_ = 0.0f;
+        updater_->InitEpoch(epoch);
+    }
+
+    void SaveModel(size_t epoch) {
+        std::string file = "model_" + epoch;
+        FILE* f = fopen(file.c_str(), "w");
+        updater_->SaveModel(f);
+        fclose(f);
+    }
+
+    void Complete(size_t epoch) {
+        PrintRes(epoch);
+        SaveModel(epoch);
     }
 
     void Run() override {
@@ -106,14 +119,13 @@ public:
             InitEpoch(epoch);
             RunEpoch(epoch, "training");
             RunEpoch(epoch, "validation");
-            PrintRes(epoch);
+            Complete(epoch);
         }
     }
 
     void RunEpoch(uint32_t epoch, std::string type) {
         std::string filename = "training" == type ? param_.data_in :
             param_.val_data;
-        updater_->InitEpoch(epoch);
         BatchIter reader(filename, param_.data_format,
                          0, 1, param_.batch_size);
         while(reader.Next()) {

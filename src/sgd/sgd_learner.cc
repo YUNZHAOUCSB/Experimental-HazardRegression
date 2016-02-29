@@ -73,7 +73,7 @@ void SGDLearner::CalcGrad(const dmlc::RowBlock<feaid_t>& data) {
             feaid_t feaid = d.index[j];
             if (!feat_set_.count(feaid)) continue;
             m.lock();
-            auto entry = gradients_[feaid];
+            SGDEntry& entry = gradients_[feaid];
             entry[rcensor] += grad.first;
             if (label) entry[lcensor] += grad.second;
             m.unlock();

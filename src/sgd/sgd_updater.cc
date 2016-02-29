@@ -18,6 +18,18 @@ void SGDUpdater::InitEpoch(size_t epoch) {
     param_.eta = param_.lr * 1.0/pow(epoch, param_.decay);
 }
 
+void SGDUpdater::SaveModel(FILE* f) {
+    for (auto e : model_.model_map_) {
+        feaid_t feaid = e.first;
+        SGDEntry& entry = e.second;
+        fprintf(f, "%d", feaid);
+        for (auto o : entry.w) {
+            fprintf(f, "\t%d:%f", o.first, o.second);
+        }
+        fprintf(f, "\n");
+    }
+}
+
 std::pair<real_t, real_t> SGDUpdater::CHazardFea(feaid_t feaid, time_t censor) {
     SGDEntry& entry = model_[feaid];
     real_t hcumulative = 0.0f;
@@ -135,18 +147,16 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
     SGDEntry& model_entry = model_[feaid];
     for (auto e : grad_entry.w) {
         time_t tt = e.first;
-        real_t val = e.second;
         time_t k;
-        real_t temp = 0.0f;
-        if (model_entry.GreastLowerBound(tt, k)) {
-            temp = model_entry[tt];
-            model_entry[tt] -= param_.eta * val;
-        }
-        else {
+        if (!model_entry.GreastLowerBound(tt, k)) {
             model_entry[tt] = model_entry[k];
-            temp = model_entry[tt];
-            model_entry[tt] -= param_.eta * val;
         }
+    }
+    for (auto e : grad_entry.w) {
+        time_t tt = e.first;
+        real_t val = e.second;
+        real_t temp = model_entry[tt];
+        model_entry[tt] -= param_.eta * val;
         if (param_.concave_penalty) {
             model_entry[tt] -= param_.eta * param_.lconcave *
                 (1.0/(temp+param_.epsilon));
