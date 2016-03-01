@@ -53,6 +53,9 @@ public:
     inline size_t Size() {
         return model_map_.size();
     }
+    inline size_t Count(feaid_t feaid) {
+        return model_map_.count(feaid);
+    }
 
     std::unordered_map<feaid_t, SGDEntry> model_map_;
 };
@@ -302,6 +305,9 @@ public:
         SGDEntry& entry = model_[feaid];
         if(entry.Size() == 0)
             entry[starttime_] = param_.init_hrate;
+    }
+    inline bool NonExist(feaid_t feaid) {
+        return !model_.Count(feaid);
     }
     std::pair<real_t, real_t> CHazardFea(feaid_t feaid,
                                          time_t censor);
