@@ -1,0 +1,10 @@
+data_in="./example/synthetic"
+nthreads=8
+lr=2e-2
+l1=2e-1
+l2=1e-5
+concave_penalty=false
+lconcave=1e-2
+batch_size=50
+feat_thresh=0
+max_num_epochs=100
