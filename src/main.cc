@@ -4,6 +4,7 @@
  */
 #include "hazard/learner.h"
 #include "dmlc/parameter.h"
+#include "common/arg_parser.h"
 
 namespace hazard {
 struct HazardParam : public dmlc::Parameter<HazardParam> {
@@ -33,15 +34,18 @@ int main(int argc, char *argv[]) {
     }
     using namespace hazard;
 
-    KWArgs kwargs;
-    for(int i=1; i<argc; i++) {
-        char name[256], val[256];
-        if(sscanf(argv[i], "%[^=]=%[^\n]", name, val) == 2) {
-            kwargs.push_back(std::make_pair(name, val));
-        }
-    }
+//    KWArgs kwargs;
+//    for(int i=1; i<argc; i++) {
+//        char name[256], val[256];
+//        if(sscanf(argv[i], "%[^=]=%[^\n]", name, val) == 2) {
+//            kwargs.push_back(std::make_pair(name, val));
+//        }
+//    }
+
+    ArgParser parser;
+    for (int i=1; i<argc; i++) parser.AddArg(argv[i]);
     HazardParam param;
-    auto kwargs_remain = param.InitAllowUnknown(kwargs);
+    auto kwargs_remain = param.InitAllowUnknown(parser.GetKWArgs());
 
     if(param.task == "train") {
         Learner* learner = Learner::Create(param.learner);
