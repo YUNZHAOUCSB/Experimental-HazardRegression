@@ -105,8 +105,9 @@ public:
     }
 
     void SaveModel(size_t epoch) {
-        std::string file = "model_" + epoch;
-        FILE* f = fopen(file.c_str(), "w");
+        char name[256];
+        sprintf(name, "model_%lu", epoch);
+        FILE* f = fopen(name, "w");
         updater_->SaveModel(f);
         fclose(f);
     }
