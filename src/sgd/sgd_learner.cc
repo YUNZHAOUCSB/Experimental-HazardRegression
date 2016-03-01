@@ -55,6 +55,8 @@ inline std::pair<real_t, real_t> SGDLearner::GenGrad(uint8_t label,
         real_t log_l = -lcumuhr + std::log(lhr);
         real_t rgrad = -std::exp(log_r - log_interval);
         real_t lgrad = std::exp(log_l - log_interval);
+        if (rhr == 0.0f) rgrad = 0.0f;
+        if (lhr == 0.0f) lgrad = 0.0f;
         return std::make_pair(rgrad, lgrad);
     }
 }

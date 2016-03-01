@@ -19,12 +19,18 @@ void SGDUpdater::InitEpoch(size_t epoch) {
 }
 
 void SGDUpdater::SaveModel(FILE* f) {
+    std::vector<feaid_t> feats(model_.Size());
+    size_t i=0;
     for (auto e : model_.model_map_) {
-        feaid_t feaid = e.first;
-        SGDEntry& entry = e.second;
+        feats[i++] = e.first;
+    }
+    std::sort(feats.begin(), feats.end());
+    for (i=0; i<feats.size(); i++) {
+        feaid_t feaid = feats[i];
+        SGDEntry& entry = model_[feaid];
         fprintf(f, "%d", feaid);
         for (auto o : entry.w) {
-            fprintf(f, "\t%d:%f", o.first, o.second);
+            fprintf(f, "\t%d:%e", o.first, o.second);
         }
         fprintf(f, "\n");
     }

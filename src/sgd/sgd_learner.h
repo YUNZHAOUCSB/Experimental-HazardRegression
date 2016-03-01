@@ -72,7 +72,9 @@ public:
     inline real_t LogMinus(real_t cumul, real_t cumur) {
         CHECK_NE(cumul, cumur);
         cumul = -cumul; cumur = -cumur;
-        return cumul + std::log(1.0f - std::exp(cumur - cumul));
+        real_t tmp = std::exp(cumur - cumul);
+        CHECK_LT(tmp, 1.0f);
+        return cumul + std::log(1.0f - tmp);
     }
 
     void CalcRes(const dmlc::RowBlock<feaid_t>& data, std::string type) {
