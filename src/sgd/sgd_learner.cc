@@ -10,6 +10,7 @@ namespace hazard {
 
 void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data) {
     loss_.clear();
+    loss_.resize(param_.batch_size);
     std::mutex m;
 #pragma omp parallel for num_threads(param_.nthreads)
     for (size_t i=0; i<data.size; i++) {

@@ -34,7 +34,8 @@ public:
     }
     inline bool GreastLowerBound(time_t key, time_t& key_out) {
         auto it = w.lower_bound(key);
-        if(it->first == key) {key_out = key; return true;}
+        if(it == w.end()) {key_out = (--it)->first; return false;}
+        else if(it->first == key) {key_out = key; return true;}
         else {key_out = (--it)->first; return false;}
     }
 };
