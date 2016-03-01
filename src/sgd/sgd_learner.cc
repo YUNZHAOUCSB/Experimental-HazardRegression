@@ -8,8 +8,7 @@
 
 namespace hazard {
 
-void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data,
-                          std::string type) {
+void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data) {
     loss_.clear();
     std::mutex m;
 #pragma omp parallel for num_threads(param_.nthreads)
@@ -21,7 +20,7 @@ void SGDLearner::CalcLoss(const dmlc::RowBlock<feaid_t>& data,
         std::pair<real_t, real_t> res;
         for(size_t j=2; j<d.length; j++) {
             feaid_t feaid = d.index[j];
-            if (!feat_set_.count(feaid) || (type!="training" && updater_->NonExist(feaid))) continue;
+            if (!feat_set_.count(feaid)) continue;
             m.lock();
             updater_->Exist(feaid);
             m.unlock();

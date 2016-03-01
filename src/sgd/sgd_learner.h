@@ -49,7 +49,7 @@ public:
         //construct feat_set_
         for (auto f : feat_cnt) {
             feaid_t feaid = f.first;
-            if (feaid >= param_.feat_thresh) {
+            if (f.second >= param_.feat_thresh) {
                 feat_set_.insert(feaid);
             }
         }
@@ -133,7 +133,7 @@ public:
                          0, 1, param_.batch_size);
         while(reader.Next()) {
             const dmlc::RowBlock<feaid_t>& data = reader.Value();
-            CalcLoss(data, type);
+            CalcLoss(data);
             CalcRes(data, type);
             if ("training" == type) {
                 CalcGrad(data);
@@ -143,7 +143,7 @@ public:
     }
 
     std::pair<real_t, real_t> GenGrad(uint8_t label, size_t x);
-    void CalcLoss(const dmlc::RowBlock<feaid_t>& data, std::string type);
+    void CalcLoss(const dmlc::RowBlock<feaid_t>& data);
     void CalcGrad(const dmlc::RowBlock<feaid_t>& data);
 
 private:
