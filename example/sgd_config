@@ -1,12 +1,12 @@
 data_in="./example/train" 
 val_data="./example/validation"
 nthreads=8
-lr=4e-3 
-l1=8e-1
-l2=1e-3 
+lr=3e-3 
+l1=1e-1
+l2=5e-1
 concave_penalty=false 
 lconcave=1e-2
-batch_size=50 
+batch_size=1000 
 feat_thresh=0 
 max_num_epochs=100
-init_hrate=1e-3
+init_hrate=1e-2

@@ -5,6 +5,7 @@
 
 #include "./sgd_updater.h"
 #include "data/batch_iter.h"
+#include <fstream>
 
 namespace hazard {
 KWArgs SGDUpdater::Init(const KWArgs& kwargs,
@@ -16,6 +17,28 @@ KWArgs SGDUpdater::Init(const KWArgs& kwargs,
 
 void SGDUpdater::InitEpoch(size_t epoch) {
     param_.eta = param_.lr * 1.0/pow(epoch, param_.decay);
+}
+
+void SGDUpdater::ReadModel(std::string name) {
+    std::ifstream infile(name, std::ifstream::in);
+    std::string line;
+    feaid_t feaid; time_t tid; real_t val;
+    while(std::getline(infile, line)) {
+        std::stringstream l(line);
+        std::string tmp;
+        std::getline(l, tmp, '\t');
+        std::stringstream(tmp) >> feaid;
+        SGDEntry& entry = model_[feaid];
+        while(std::getline(l, tmp, '\t')) {
+            std::stringstream item(tmp);
+            std::string stmp;
+            std::getline(item, stmp, ':');
+            std::stringstream(stmp) >> tid;
+            std::getline(item, stmp, ':');
+            std::stringstream(stmp) >> val;
+            entry[tid] = val;
+        }
+    }
 }
 
 void SGDUpdater::SaveModel(FILE* f) {

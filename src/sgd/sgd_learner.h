@@ -67,6 +67,10 @@ public:
         loss_.clear();
         loss_.resize(param_.batch_size);
 
+        if(!param_.model_in.empty()) {
+            ReadModel();
+        }
+
         return remain;
     }
 
@@ -103,6 +107,10 @@ public:
     void InitEpoch(size_t epoch) {
         train_loss_ = 0.0f; val_loss_ = 0.0f;
         updater_->InitEpoch(epoch);
+    }
+
+    void ReadModel() {
+        updater_->ReadModel(param_.model_in);
     }
 
     void SaveModel(size_t epoch) {

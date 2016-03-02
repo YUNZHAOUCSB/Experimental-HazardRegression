@@ -317,6 +317,7 @@ public:
     void StoreChanges(feaid_t feaid, std::vector<real_t>&, std::vector<time_t>&);
     void FLSAIsotonic(feaid_t feaid);
     void SaveModel(FILE* f);
+    void ReadModel(std::string name);
 
     time_t starttime_;
     /**
