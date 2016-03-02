@@ -307,9 +307,6 @@ public:
         if(entry.Size() == 0)
             entry[starttime_] = param_.init_hrate;
     }
-    inline bool NonExist(feaid_t feaid) {
-        return !model_.Count(feaid);
-    }
     std::pair<real_t, real_t> CHazardFea(feaid_t feaid,
                                          time_t censor);
     inline real_t SoftThresh(real_t w);

@@ -46,13 +46,6 @@ public:
                 }
             }
         }
-        //construct feat_set_
-        for (auto f : feat_cnt) {
-            feaid_t feaid = f.first;
-            if (f.second >= param_.feat_thresh) {
-                feat_set_.insert(feaid);
-            }
-        }
         //construct cumu_cnt_
         auto it = ordinal.cbegin();
         auto it0 = ordinal.cbegin();
@@ -61,6 +54,14 @@ public:
         it++;
         for (; it!=ordinal.cend(); it++, it0++) {
             updater_->cumu_cnt_[*it] = updater_->cumu_cnt_[*(it0)] + 1;
+        }
+        //construct feat_set_, init updater_->model_
+        for (auto f : feat_cnt) {
+            feaid_t feaid = f.first;
+            if (f.second >= param_.feat_thresh) {
+                feat_set_.insert(feaid);
+                updater_->Exist(feaid);
+            }
         }
         // init loss_
         loss_.clear();
