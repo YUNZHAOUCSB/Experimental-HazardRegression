@@ -1,9 +1,9 @@
 data_in="./example/train" 
 val_data="./example/validation"
 nthreads=8
-lr=3e-3 
+lr=4e-3 
 l1=1e-1
-l2=5e-1
+l2=1e0
 concave_penalty=false 
 lconcave=1e-2
 batch_size=1000 
