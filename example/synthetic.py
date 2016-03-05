@@ -65,7 +65,7 @@ def sampleHackedTime(i):
         if z == 0.0:
             continue
         t = -log(z)/Hr[rank[i]]
-        if (i+1>=len(rank) and t<=T) or (i+1<len(rank) and t <= rank[i+1]):
+        if (i+1>=len(rank) and t+rank[i]<=T) or (i+1<len(rank) and t+rank[i] <= rank[i+1]):
             return t+rank[i]
         else:
             i+=1
@@ -85,8 +85,7 @@ def save_data(start, nd, fw):
         hackt = bl[i]
         if hackt == T: #right censored
             label = 0
-            lt = 0
-            fw.write("%d\t%e\t%e"%(label, hackt, lt))
+            fw.write("%d\t%e\t%e"%(label, hackt, 0))
             nNeg += 1
         else:
             label = 1
