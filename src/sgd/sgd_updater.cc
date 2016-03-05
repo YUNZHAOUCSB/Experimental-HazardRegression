@@ -53,7 +53,7 @@ void SGDUpdater::SaveModel(FILE* f) {
         SGDEntry& entry = model_[feaid];
         fprintf(f, "%d", feaid);
         for (auto o : entry.w) {
-            fprintf(f, "\t%d:%e", o.first, o.second);
+            fprintf(f, "\t%e:%e", o.first, o.second);
         }
         fprintf(f, "\n");
     }

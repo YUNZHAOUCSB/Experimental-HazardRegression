@@ -34,14 +34,14 @@ public:
         BatchIter reader(param_.data_in, param_.data_format,
                          0, 1, param_.batch_size);
         while(reader.Next()) {
-            const dmlc::RowBlock<feaid_t>& data = reader.Value();
+            const dmlc::RowBlock<real_t>& data = reader.Value();
             for (size_t i=0; i<data.size; i++) {
-                const dmlc::Row<feaid_t>& d = data[i];
+                const dmlc::Row<real_t>& d = data[i];
                 uint8_t label = (uint8_t)d.label;
-                ordinal.insert(d.index[0]);
-                if (label) ordinal.insert(d.index[1]);
+                ordinal.insert((time_t)d.index[0]);
+                if (label) ordinal.insert((time_t)d.index[1]);
                 for (size_t j = 2; j<d.length; j++) {
-                    feaid_t feaid = d.index[j];
+                    feaid_t feaid = (feaid_t)d.index[j];
                     feat_cnt[feaid] += 1;
                 }
             }
@@ -81,11 +81,11 @@ public:
         return cumul + std::log(1.0f - tmp);
     }
 
-    void CalcRes(const dmlc::RowBlock<feaid_t>& data, std::string type) {
+    void CalcRes(const dmlc::RowBlock<real_t>& data, std::string type) {
         real_t res = 0.0f;
 #pragma omp parallel for reduction(+:res) num_threads(param_.nthreads)
         for (size_t i=0; i<data.size; i++) {
-            const dmlc::Row<feaid_t>& d = data[i];
+            const dmlc::Row<real_t>& d = data[i];
             uint8_t label = (uint8_t) d.label;
             if (label) {
                 res += -LogMinus(std::get<2>(loss_[i]), std::get<0>(loss_[i]));
@@ -140,7 +140,7 @@ public:
         BatchIter reader(filename, param_.data_format,
                          0, 1, param_.batch_size);
         while(reader.Next()) {
-            const dmlc::RowBlock<feaid_t>& data = reader.Value();
+            const dmlc::RowBlock<real_t>& data = reader.Value();
             CalcLoss(data);
             CalcRes(data, type);
             if ("training" == type) {
@@ -151,8 +151,8 @@ public:
     }
 
     std::pair<real_t, real_t> GenGrad(uint8_t label, size_t x);
-    void CalcLoss(const dmlc::RowBlock<feaid_t>& data);
-    void CalcGrad(const dmlc::RowBlock<feaid_t>& data);
+    void CalcLoss(const dmlc::RowBlock<real_t>& data);
+    void CalcGrad(const dmlc::RowBlock<real_t>& data);
 
 private:
     SGDLearnerParam param_;

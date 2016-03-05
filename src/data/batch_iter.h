@@ -45,7 +45,7 @@ namespace hazard {
          * \brief get the current batch
          *
          */
-        const dmlc::RowBlock<feaid_t>& Value() const {
+        const dmlc::RowBlock<real_t>& Value() const {
             return out_blk_;
         }
 
@@ -63,11 +63,11 @@ namespace hazard {
         void Push(size_t pos, size_t len);
 
         unsigned batch_size_;
-        dmlc::data::ParserImpl<feaid_t> *parser_;
+        dmlc::data::ParserImpl<real_t> *parser_;
 
         size_t start_, end_;
-        dmlc::RowBlock<feaid_t> in_blk_, out_blk_;
-        dmlc::data::RowBlockContainer<feaid_t> batch_;
+        dmlc::RowBlock<real_t> in_blk_, out_blk_;
+        dmlc::data::RowBlockContainer<real_t> batch_;
     };
 
 }  // namespace hazard

@@ -12,7 +12,7 @@
 namespace hazard {
     typedef float real_t;
     typedef uint32_t feaid_t;
-    typedef uint32_t time_t;
+    typedef real_t time_t;
     typedef std::vector<std::pair<std::string, std::string>> KWArgs;
 #define DEFAULT_NTHREADS 4
 }
