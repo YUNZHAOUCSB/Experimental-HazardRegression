@@ -3,7 +3,7 @@ from math import log
 random.seed()
 
 #model setting
-nData = 1000
+nData = 100000
 nFeat = 1000
 ratioFeatActive = 0.01
 ratioFeatInData = 0.1
