@@ -47,16 +47,12 @@ int main(int argc, char *argv[]) {
     HazardParam param;
     auto kwargs_remain = param.InitAllowUnknown(parser.GetKWArgs());
 
-    if(param.task == "train") {
+    if(param.task == "train" || param.task == "predict") {
         Learner* learner = Learner::Create(param.learner);
-        WarnUnknownKWArgs(param, learner->Init(kwargs_remain));
-        learner->Run();
+        WarnUnknownKWArgs(param, learner->Init(param.task, kwargs_remain));
+        learner->Run(param.task);
         delete learner;
-    }
-    else if(param.task == "predict") {
-        LOG(FATAL) << "TODO";
-    }
-    else {
+    } else {
         LOG(FATAL) << "unknown task: " << param.task;
     }
 

@@ -24,7 +24,7 @@ public:
         delete updater_;
     }
 
-    KWArgs Init(const KWArgs& kwargs) override {
+    KWArgs Init(const std::string& task, const KWArgs& kwargs) override {
         KWArgs remain = param_.InitAllowUnknown(kwargs);
         updater_ = (SGDUpdater*)Updater::Create(param_.updater_type);
         remain = updater_->Init(remain, param_);
@@ -67,6 +67,9 @@ public:
         loss_.clear();
         loss_.resize(param_.batch_size);
 
+        if (task == "predict" && param_.model_in.empty()) {
+            LOG(FATAL) << "model_in = NULL";
+        }
         if(!param_.model_in.empty()) {
             ReadModel();
         }
@@ -120,21 +123,22 @@ public:
         fclose(f);
     }
 
-    void Complete(size_t epoch) {
+    void Complete(size_t epoch, const std::string& task) {
         PrintRes(epoch);
-        SaveModel(epoch);
+        if (task == "train") SaveModel(epoch);
     }
 
-    void Run() override {
+    void Run(const std::string& task) override {
+        if (task == "predict") param_.max_num_epochs = 1;
         for (uint32_t epoch=1; epoch <= param_.max_num_epochs; epoch++) {
             InitEpoch(epoch);
-            RunEpoch(epoch, "training");
-            RunEpoch(epoch, "validation");
-            Complete(epoch);
+            RunEpoch(epoch, "training", task);
+            RunEpoch(epoch, "validation", task);
+            Complete(epoch, task);
         }
     }
 
-    void RunEpoch(uint32_t epoch, std::string type) {
+    void RunEpoch(uint32_t epoch, const std::string& type, const std::string& task) {
         std::string filename = "training" == type ? param_.data_in :
             param_.val_data;
         BatchIter reader(filename, param_.data_format,
@@ -143,7 +147,7 @@ public:
             const dmlc::RowBlock<real_t>& data = reader.Value();
             CalcLoss(data);
             CalcRes(data, type);
-            if ("training" == type) {
+            if ("training" == type && task == "train") {
                 CalcGrad(data);
                 updater_->Update(gradients_);
             }
