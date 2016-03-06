@@ -55,6 +55,10 @@ public:
         for (; it!=ordinal.cend(); it++, it0++) {
             updater_->cumu_cnt_[*it] = updater_->cumu_cnt_[*(it0)] + 1;
         }
+        // if model_in set init_hrate = 0.0f
+        if (!param_.model_in.empty()) {
+            updater_->SetHrate(0.0f);
+        }
         //construct feat_set_, init updater_->model_
         for (auto f : feat_cnt) {
             feaid_t feaid = f.first;

@@ -318,6 +318,9 @@ public:
     void FLSAIsotonic(feaid_t feaid);
     void SaveModel(FILE* f);
     void ReadModel(std::string name);
+    inline void SetHrate(real_t hr) {
+        param_.init_hrate = hr;
+    }
 
     time_t starttime_;
     /**
