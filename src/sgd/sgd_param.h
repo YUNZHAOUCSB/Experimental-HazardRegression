@@ -32,9 +32,9 @@ namespace hazard {
         bool concave_penalty;
 
         DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
-            DMLC_DECLARE_FIELD(l1).set_range(0.0f,1e2f).set_default(1);
-            DMLC_DECLARE_FIELD(l2).set_range(0.0f,1e2f).set_default(1);
-            DMLC_DECLARE_FIELD(lconcave).set_range(0.0f,1e2f).set_default(1);
+            DMLC_DECLARE_FIELD(l1).set_range(0.0f,1e5f).set_default(1);
+            DMLC_DECLARE_FIELD(l2).set_range(0.0f,1e5f).set_default(1);
+            DMLC_DECLARE_FIELD(lconcave).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(epsilon).set_range(1e-2f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(lr).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(eta).set_range(0.0f,1e1f).set_default(1);
