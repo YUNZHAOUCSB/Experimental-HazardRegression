@@ -18,13 +18,13 @@ namespace hazard {
         // create parser
         char const* c_uri = uri.c_str();
         if (format == "libsvm") {
-            parser_ = new dmlc::data::LibSVMParser<real_t>(
+            parser_ = new dmlc::data::LibSVMParser<time_t>(
                 dmlc::InputSplit::Create(c_uri, part_index, num_parts, "text"), 1);
         }
         else {
             LOG(FATAL) << "unknown format " << format;
         }
-        parser_ = new dmlc::data::ThreadedParser<real_t>(parser_);
+        parser_ = new dmlc::data::ThreadedParser<time_t>(parser_);
     }
 
     bool BatchIter::Next() {
@@ -54,7 +54,7 @@ namespace hazard {
     void BatchIter::Push(size_t pos, size_t len) {
         if (!len) return;
         CHECK_LE(pos + len, in_blk_.size);
-        dmlc::RowBlock<real_t> slice;
+        dmlc::RowBlock<time_t> slice;
         slice.weight = NULL;
         slice.size = len;
         slice.offset  = in_blk_.offset + pos;

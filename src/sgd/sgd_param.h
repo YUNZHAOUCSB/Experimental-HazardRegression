@@ -15,7 +15,9 @@ namespace hazard {
         /** \brief the l1 regularizer for \|D^{(1)}w^\top\|_1 */
         real_t l2;
         /** \brief the penalty for concave part \log(w_{ij}) */
-        real_t lconcave;
+        real_t lconcave1;
+        /** \brief the penalty for \log(Dw^top_{ij}) */
+        real_t lconcave2;
         /** \log (|w| + \epsilon) */
         real_t epsilon;
         /** \brief init learning rate */
@@ -26,21 +28,24 @@ namespace hazard {
         real_t decay;
         /** \brief init attack hazard rate */
         real_t init_hrate;
-        /** \brief add a concave_penalty for each
-            coordinate if we are assuming sharper
-            infection rates at beginning */
-        bool concave_penalty;
+        /** \brief concave_penalties for each
+            coordinate to allow sharper
+            infection rates */
+        bool concave_penalty1;
+        bool concave_penalty2;
 
         DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
             DMLC_DECLARE_FIELD(l1).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(l2).set_range(0.0f,1e5f).set_default(1);
-            DMLC_DECLARE_FIELD(lconcave).set_range(0.0f,1e5f).set_default(1);
+            DMLC_DECLARE_FIELD(lconcave1).set_range(0.0f,1e5f).set_default(1);
+            DMLC_DECLARE_FIELD(lconcave2).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(epsilon).set_range(1e-2f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(lr).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(eta).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(decay).set_range(0.0f,1.0f).set_default(1);
             DMLC_DECLARE_FIELD(init_hrate).set_default(1e-1);
-            DMLC_DECLARE_FIELD(concave_penalty).set_default(true);
+            DMLC_DECLARE_FIELD(concave_penalty1).set_default(true);
+            DMLC_DECLARE_FIELD(concave_penalty2).set_default(true);
         }
     }; //class SGDUpdaterParam
 

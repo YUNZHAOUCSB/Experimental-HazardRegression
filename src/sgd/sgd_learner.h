@@ -30,30 +30,23 @@ public:
         remain = updater_->Init(remain, param_);
         // construct feat_set_ and updater_.cumu_cnt_
         std::unordered_map<feaid_t, size_t> feat_cnt;
-        std::set<time_t> ordinal;
+        std::unordered_map<feaid_t, std::set<time_t>> ordinal;
         BatchIter reader(param_.data_in, param_.data_format,
                          0, 1, param_.batch_size);
         while(reader.Next()) {
-            const dmlc::RowBlock<real_t>& data = reader.Value();
+            const dmlc::RowBlock<time_t>& data = reader.Value();
             for (size_t i=0; i<data.size; i++) {
-                const dmlc::Row<real_t>& d = data[i];
+                const dmlc::Row<time_t>& d = data[i];
                 uint8_t label = (uint8_t)d.label;
-                ordinal.insert((time_t)d.index[0]);
-                if (label) ordinal.insert((time_t)d.index[1]);
+                if(updater_->endtime_ < d.index[0]) updater_->endtime_ = d.index[0];
+                if (label && updater_->starttime_ > d.index[1]) updater_->starttime_ = d.index[1];
                 for (size_t j = 2; j<d.length; j++) {
                     feaid_t feaid = (feaid_t)d.index[j];
                     feat_cnt[feaid] += 1;
+                    ordinal[feaid].insert((time_t)d.index[0]);
+                    if (label) ordinal[feaid].insert((time_t)d.index[1]);
                 }
             }
-        }
-        //construct cumu_cnt_
-        auto it = ordinal.cbegin();
-        auto it0 = ordinal.cbegin();
-        updater_->starttime_ = *it;
-        updater_->cumu_cnt_[*it] = 0;
-        it++;
-        for (; it!=ordinal.cend(); it++, it0++) {
-            updater_->cumu_cnt_[*it] = updater_->cumu_cnt_[*(it0)] + 1;
         }
         // if model_in set init_hrate = 0.0f
         if (!param_.model_in.empty()) {
@@ -65,6 +58,18 @@ public:
             if (f.second >= param_.feat_thresh) {
                 feat_set_.insert(feaid);
                 updater_->Exist(feaid);
+            }
+        }
+        //construct cumu_cnt_
+        for (auto e : ordinal) {
+            feaid_t feaid = e.first;
+            if (!feat_set_.count(feaid)) continue;
+            std::set<time_t>& s = e.second;
+            auto it = s.cbegin(); auto it0 = s.cbegin();
+            updater_->cumu_cnt_[feaid][*it] = 0;
+            it++;
+            for (; it!=s.cend(); it++, it0++) {
+                updater_->cumu_cnt_[feaid][*it] = updater_->cumu_cnt_[feaid][*it0] + 1;
             }
         }
         // init loss_
@@ -88,11 +93,11 @@ public:
         return cumul + std::log(1.0f - tmp);
     }
 
-    void CalcRes(const dmlc::RowBlock<real_t>& data, std::string type) {
+    void CalcRes(const dmlc::RowBlock<time_t>& data, std::string type) {
         real_t res = 0.0f;
 #pragma omp parallel for reduction(+:res) num_threads(param_.nthreads)
         for (size_t i=0; i<data.size; i++) {
-            const dmlc::Row<real_t>& d = data[i];
+            const dmlc::Row<time_t>& d = data[i];
             uint8_t label = (uint8_t) d.label;
             if (label) {
                 res += -LogMinus(std::get<2>(loss_[i]), std::get<0>(loss_[i]));
@@ -121,7 +126,7 @@ public:
 
     void SaveModel(size_t epoch) {
         char name[256];
-        sprintf(name, "model_%lu", epoch);
+        sprintf(name, "%s_%lu", param_.model_out.c_str(), epoch);
         FILE* f = fopen(name, "w");
         updater_->SaveModel(f);
         fclose(f);
@@ -129,7 +134,7 @@ public:
 
     void Complete(size_t epoch, const std::string& task) {
         PrintRes(epoch);
-        if (task == "train") SaveModel(epoch);
+        if (task == "train" && !param_.model_out.empty()) SaveModel(epoch);
     }
 
     void Run(const std::string& task) override {
@@ -148,7 +153,7 @@ public:
         BatchIter reader(filename, param_.data_format,
                          0, 1, param_.batch_size);
         while(reader.Next()) {
-            const dmlc::RowBlock<real_t>& data = reader.Value();
+            const dmlc::RowBlock<time_t>& data = reader.Value();
             CalcLoss(data);
             CalcRes(data, type);
             if ("training" == type && task == "train") {
@@ -159,8 +164,8 @@ public:
     }
 
     std::pair<real_t, real_t> GenGrad(uint8_t label, size_t x);
-    void CalcLoss(const dmlc::RowBlock<real_t>& data);
-    void CalcGrad(const dmlc::RowBlock<real_t>& data);
+    void CalcLoss(const dmlc::RowBlock<time_t>& data);
+    void CalcGrad(const dmlc::RowBlock<time_t>& data);
 
 private:
     SGDLearnerParam param_;

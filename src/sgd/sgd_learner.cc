@@ -8,12 +8,12 @@
 
 namespace hazard {
 
-void SGDLearner::CalcLoss(const dmlc::RowBlock<real_t>& data) {
+void SGDLearner::CalcLoss(const dmlc::RowBlock<time_t>& data) {
     loss_.clear();
     loss_.resize(param_.batch_size);
 #pragma omp parallel for num_threads(param_.nthreads)
     for (size_t i=0; i<data.size; i++) {
-        const dmlc::Row<real_t>& d = data[i];
+        const dmlc::Row<time_t>& d = data[i];
         uint8_t label = (uint8_t)d.label;
         time_t rcensor, lcensor;
         rcensor = (time_t)d.index[0]; lcensor = (time_t)d.index[1];
@@ -58,12 +58,12 @@ inline std::pair<real_t, real_t> SGDLearner::GenGrad(uint8_t label,
     }
 }
 
-void SGDLearner::CalcGrad(const dmlc::RowBlock<real_t>& data) {
+void SGDLearner::CalcGrad(const dmlc::RowBlock<time_t>& data) {
     std::mutex m;
     gradients_.Clear();
 #pragma omp parallel for num_threads(param_.nthreads)
     for (size_t i=0; i<data.size; i++) {
-        const dmlc::Row<real_t>& d = data[i];
+        const dmlc::Row<time_t>& d = data[i];
         uint8_t label = (uint8_t)d.label;
         time_t rcensor, lcensor;
         rcensor = (time_t)d.index[0]; lcensor = (time_t)d.index[1];

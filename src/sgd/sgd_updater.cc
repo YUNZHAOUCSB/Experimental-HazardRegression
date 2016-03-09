@@ -82,7 +82,7 @@ inline real_t SGDUpdater::SoftThresh(real_t w) {
     else if(w < -lrl1) w += lrl1;
     else w = 0.0f;
     //project w back to constraint set \geq 0
-    w = std::max(0.0f, w);
+    w = std::max(0.0, w);
     return w;
 }
 
@@ -94,14 +94,15 @@ void SGDUpdater::CalcFldpX(SGDEntry& model_entry, std::vector<real_t>& x
         x[i++] = e.second;
     }
 }
-void SGDUpdater::CalcFldpW(SGDEntry& model_entry, std::vector<real_t>& w) {
+    void SGDUpdater::CalcFldpW(SGDEntry& model_entry, std::vector<real_t>& w, feaid_t feaid) {
     size_t i = 0;
     std::map<time_t, real_t>::iterator it = model_entry.w.begin();
     std::map<time_t, real_t>::iterator it_next = model_entry.w.upper_bound(it->first);
     for (; it_next!=model_entry.w.cend(); it++, it_next++) {
-        w[i++] = cumu_cnt_[it_next->first] - cumu_cnt_[it->first];
+        w[i++] = cumu_cnt_[feaid][it_next->first] - cumu_cnt_[feaid][it->first];
     }
-    w[i] = cumu_cnt_.size() - cumu_cnt_[it->first];
+    w[i] = cumu_cnt_[feaid].size() - cumu_cnt_[feaid][it->first];
+    CHECK_GT(w[i],0);
 }
 
 void SGDUpdater::FLSAIsotonic(feaid_t feaid) {
@@ -110,7 +111,7 @@ void SGDUpdater::FLSAIsotonic(feaid_t feaid) {
     std::vector<time_t> k(x.size());
     std::vector<real_t> w(x.size());
     CalcFldpX(model_entry, x, k);
-    CalcFldpW(model_entry, w);
+    CalcFldpW(model_entry, w, feaid);
     IsotonicDp(x.data(), x.size(), param_.l2*param_.eta, 5000, w.data());
     StoreChanges(feaid, x, k);
 }
@@ -174,6 +175,7 @@ void SGDUpdater::IsotonicDp(real_t* x,
 
 void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
     SGDEntry& model_entry = model_[feaid];
+    // write model_entry
     for (auto e : grad_entry.w) {
         time_t tt = e.first;
         time_t k;
@@ -181,13 +183,43 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
             model_entry[tt] = model_entry[k];
         }
     }
+    // don't write model_entry, but update grad_entry
+    if (param_.concave_penalty2) {
+        for (auto e : grad_entry.w) {
+            time_t tt = e.first;
+            auto it = model_entry.w.find(tt);
+            CHECK_NE(it, model_entry.w.end());
+            real_t val = it->second;
+            auto prev = --it; it++; auto next = ++it;
+            // add concave_penalty2 to grad_entry
+            real_t g;
+            if (tt > starttime_) {
+                g = 1.0f/(val - prev->second + param_.epsilon);
+                CHECK_GE(val, prev->second);
+                grad_entry[tt] += param_.lconcave2 * g;
+            }
+            if (tt < endtime_) {
+                if (next != model_entry.w.end() && cumu_cnt_[feaid][tt]+1 == cumu_cnt_[feaid][next->first]) {
+                    g = -1.0f/(next->second - val + param_.epsilon);
+                    CHECK_GE(next->second, val);
+                }
+                else {
+                    g = -1.0f/param_.lconcave2;
+                }
+                grad_entry[tt] += param_.lconcave2 * g;
+            }
+        }
+    }
+    // update model_entry
     for (auto e : grad_entry.w) {
         time_t tt = e.first;
         real_t val = e.second;
         real_t temp = model_entry[tt];
+        // update gradient
         model_entry[tt] -= param_.eta * val;
-        if (param_.concave_penalty) {
-            model_entry[tt] -= param_.eta * param_.lconcave *
+        // update concave_penalty1
+        if (param_.concave_penalty1) {
+            model_entry[tt] -= param_.eta * param_.lconcave1 *
                 (1.0/(temp+param_.epsilon));
         }
     }

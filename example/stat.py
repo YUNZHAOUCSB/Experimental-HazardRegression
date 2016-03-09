@@ -9,6 +9,7 @@ ratioFeatActive = 0.01
 ratioFeatInData = 0.1
 T = 10.0
 pieceWiseHr = [1e-1, 2e-1, 4e-1]
+pieceWiseT = [1.0,4.8,7.0]
 ratioTrain = 0.8
 measure = T*0.05
 rPosNeg = 0.5
@@ -35,16 +36,19 @@ data = []
 
 nPos = 0
 nNeg = 0
+stat = {}
 
 # sample hacked time given a data and golden model
 def sampleHackedTime(i):
     Hr = {}
     rank = []
     d = data[i]
+    target = 0
     for f in d:
         if f not in hr:
             continue
         else:
+            target = f
             for i in range(nPieceHr):
                 t = hr[f][i]
                 if t not in Hr:
@@ -58,6 +62,8 @@ def sampleHackedTime(i):
         Hr[rank[i]] += prev
         prev = Hr[rank[i]]
 
+    if target not in stat:
+        stat[target] = [0]*len(rank)
     #sample
     i = 0
     while True:
@@ -66,6 +72,7 @@ def sampleHackedTime(i):
             continue
         t = -log(z)/Hr[rank[i]]
         if (i+1>=len(rank) and t+rank[i]<=T) or (i+1<len(rank) and t+rank[i] <= rank[i+1]):
+            stat[target][i] += 1
             return t+rank[i]
         else:
             i+=1
@@ -110,11 +117,12 @@ def genHr():
     for i in range(nFeatActive):
         hr[i] = []
         for j in range(nPieceHr):
-    	    while True:
-                tmp = random.random()*T
-                if tmp not in hr[i]:
-                    hr[i].append(tmp)
-                    break
+            hr[i].append(pieceWiseT[j])
+#    	    while True:
+#                tmp = random.random()*T
+#                if tmp not in hr[i]:
+#                    hr[i].append(tmp)
+#                    break
         hr[i].sort()
 
 # generate data
@@ -148,6 +156,10 @@ def main():
 def printStat():
     global nPos, nNeg
     print "#Pos = %d, #Neg = %d\n"%(nPos, nNeg)
+    for f in stat:
+        for i in range(len(stat[f])):
+            print stat[f][i],
+        print '\n'
 
 
 if __name__ == "__main__":

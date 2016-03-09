@@ -294,7 +294,10 @@ public:
     }; // class Msg
 
 public:
-    SGDUpdater() {}
+    SGDUpdater() {
+        starttime_ = std::numeric_limits<time_t>::max();
+        endtime_ = 0.0f;
+    }
     virtual ~SGDUpdater() {}
     KWArgs Init(const KWArgs& kwargs) override {return kwargs;}
     KWArgs Init(const KWArgs& kwargs,
@@ -311,7 +314,7 @@ public:
                                          time_t censor);
     inline real_t SoftThresh(real_t w);
     void CalcFldpX(SGDEntry&, std::vector<real_t>&, std::vector<time_t>&);
-    void CalcFldpW(SGDEntry&, std::vector<real_t>&);
+    void CalcFldpW(SGDEntry&, std::vector<real_t>&, feaid_t feaid);
     void UpdateGradient(feaid_t feaid, SGDEntry& entry);
     void IsotonicDp(real_t*, size_t, real_t, size_t, real_t*);
     void StoreChanges(feaid_t feaid, std::vector<real_t>&, std::vector<time_t>&);
@@ -323,10 +326,11 @@ public:
     }
 
     time_t starttime_;
+    time_t endtime_;
     /**
      *  \brief cumulative data count before current time point
      */
-    std::unordered_map<time_t, size_t> cumu_cnt_;
+    std::unordered_map<feaid_t, std::unordered_map<time_t, size_t>> cumu_cnt_;
 private:
     SGDModel model_;
     SGDUpdaterParam param_;
