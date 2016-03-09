@@ -225,13 +225,13 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
             // add concave_penalty2 to grad_entry
             real_t g;
             if (tt > starttime_) {
-                g = 1.0f/(val - prev->second + param_.epsilon);
+                g = 1.0f/(val - prev->second + param_.epsilon2);
                 CHECK_GE(val, prev->second);
                 grad_entry[tt] += param_.lconcave2 * g;
             }
             if (tt < endtime_) {
                 if (next != model_entry.w.end() && cumu_cnt_[feaid][tt]+1 == cumu_cnt_[feaid][next->first]) {
-                    g = -1.0f/(next->second - val + param_.epsilon);
+                    g = -1.0f/(next->second - val + param_.epsilon2);
                     CHECK_GE(next->second, val);
                 }
                 else {
@@ -251,7 +251,7 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
         // update concave_penalty1
         if (param_.concave_penalty1) {
             model_entry[tt] -= param_.eta * param_.lconcave1 *
-                (1.0/(temp+param_.epsilon));
+                (1.0/(temp+param_.epsilon1));
         }
     }
 }

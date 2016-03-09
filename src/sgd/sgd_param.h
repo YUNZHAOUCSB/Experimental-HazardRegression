@@ -18,8 +18,10 @@ namespace hazard {
         real_t lconcave1;
         /** \brief the penalty for \log(Dw^top_{ij}) */
         real_t lconcave2;
-        /** \log (|w| + \epsilon) */
-        real_t epsilon;
+        /** \log (|w| + \epsilon1) */
+        real_t epsilon1;
+        /** \log (|Dw| + \epsilon2) */
+        real_t epsilon2;
         /** \brief init learning rate */
         real_t lr;
         /** \brief learning rate at each epoch */
@@ -41,7 +43,8 @@ namespace hazard {
             DMLC_DECLARE_FIELD(l2).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(lconcave1).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(lconcave2).set_range(0.0f,1e5f).set_default(1);
-            DMLC_DECLARE_FIELD(epsilon).set_range(1e-2f,1e1f).set_default(1);
+            DMLC_DECLARE_FIELD(epsilon1).set_range(1e-2f,1e1f).set_default(1);
+            DMLC_DECLARE_FIELD(epsilon2).set_range(1e-2f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(lr).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(eta).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(decay).set_range(0.0f,1.0f).set_default(1);
