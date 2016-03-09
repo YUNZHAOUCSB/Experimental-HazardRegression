@@ -315,10 +315,12 @@ public:
     inline real_t SoftThresh(real_t w);
     void CalcFldpX(SGDEntry&, std::vector<real_t>&, std::vector<time_t>&);
     void CalcFldpW(SGDEntry&, std::vector<real_t>&, feaid_t feaid);
-    void UpdateGradient(feaid_t feaid, SGDEntry& entry);
-    void IsotonicDp(real_t*, size_t, real_t, size_t, real_t*);
+    void IsotonicFLSA(real_t*, size_t, real_t, size_t, real_t*);
+    void Pool(real_t*, real_t*, int i, int j);
+    void PAVA(real_t*, real_t*, int);
     void StoreChanges(feaid_t feaid, std::vector<real_t>&, std::vector<time_t>&);
-    void FLSAIsotonic(feaid_t feaid);
+    void ProxOperators(feaid_t feaid);
+    void UpdateGradient(feaid_t feaid, SGDEntry& entry);
     void SaveModel(FILE* f);
     void ReadModel(std::string name);
     inline void SetHrate(real_t hr) {

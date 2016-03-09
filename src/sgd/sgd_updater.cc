@@ -75,6 +75,34 @@ std::pair<real_t, real_t> SGDUpdater::CHazardFea(feaid_t feaid, time_t censor) {
     return std::make_pair(hcumulative, hrate);
 }
 
+void SGDUpdater::Pool (real_t* y, real_t* w, int i, int j) {
+    int k;
+    real_t s0=0, s1=0;
+
+    for (k=i; k<=j; k++) {s1 += y[k]*w[k]; s0 += w[k];}
+    s1 /= s0;
+    for (k=i; k<=j; k++) y[k] = s1;
+}
+
+void SGDUpdater::PAVA (real_t* y, real_t* w, int n) {
+    if (n <= 1) return;
+    int npools;
+    n--;
+
+    /* keep passing through the array until pooling is not needed */
+    do {
+        int i = 0;
+        npools = 0;
+        while (i < n) {
+            int k = i;
+            /* starting at y[i], find longest non-increasing sequence y[i:k] */
+            while (k < n && y[k] >= y[k+1])  k++;
+            if (y[i] != y[k]) {Pool(y, w, i, k); npools++;}
+            i = k+1;
+        }
+    } while (npools > 0);
+}
+
 inline real_t SGDUpdater::SoftThresh(real_t w) {
     //soft thresholding
     real_t lrl1 = param_.eta * param_.l1;
@@ -105,14 +133,17 @@ void SGDUpdater::CalcFldpX(SGDEntry& model_entry, std::vector<real_t>& x
     CHECK_GT(w[i],0);
 }
 
-void SGDUpdater::FLSAIsotonic(feaid_t feaid) {
+void SGDUpdater::ProxOperators(feaid_t feaid) {
     SGDEntry& model_entry = model_[feaid];
     std::vector<real_t> x(model_entry.Size());
     std::vector<time_t> k(x.size());
     std::vector<real_t> w(x.size());
     CalcFldpX(model_entry, x, k);
     CalcFldpW(model_entry, w, feaid);
-    IsotonicDp(x.data(), x.size(), param_.l2*param_.eta, 5000, w.data());
+    if (param_.flsa == true)
+        IsotonicFLSA(x.data(), x.size(), param_.l2*param_.eta, 5000, w.data());
+    else
+        PAVA(x.data(), w.data(), x.size());
     StoreChanges(feaid, x, k);
 }
 
@@ -132,7 +163,7 @@ void SGDUpdater::StoreChanges(feaid_t feaid, std::vector<real_t>& x
     }
 }
 
-void SGDUpdater::IsotonicDp(real_t* x,
+void SGDUpdater::IsotonicFLSA(real_t* x,
                             size_t seq_len,
                             real_t lambda2,
                             size_t init_buf_sz,
@@ -236,7 +267,7 @@ void SGDUpdater::Update(SGDModel& grad) {
     for (i=0; i<feats.size(); i++) {
         feaid_t feaid = feats[i];
         UpdateGradient(feaid, grad[feaid]);
-        FLSAIsotonic(feaid);
+        ProxOperators(feaid);
     }
 }
 

@@ -33,6 +33,8 @@ namespace hazard {
             infection rates */
         bool concave_penalty1;
         bool concave_penalty2;
+        /** whether do flsa */
+        bool flsa;
 
         DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
             DMLC_DECLARE_FIELD(l1).set_range(0.0f,1e5f).set_default(1);
@@ -46,6 +48,7 @@ namespace hazard {
             DMLC_DECLARE_FIELD(init_hrate).set_default(1e-1);
             DMLC_DECLARE_FIELD(concave_penalty1).set_default(true);
             DMLC_DECLARE_FIELD(concave_penalty2).set_default(true);
+            DMLC_DECLARE_FIELD(flsa).set_default(true);
         }
     }; //class SGDUpdaterParam
 
