@@ -229,13 +229,17 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
                 CHECK_GE(val, prev->second);
                 grad_entry[tt] += param_.lconcave2 * g;
             }
-            if (tt < endtime_) {
+            else {
+                g = 1.0/(param_.epsilon2);
+                grad_entry[tt] += param_.lconcave2 * g;
+            }
+            if (tt <= endtime_) {
                 if (next != model_entry.w.end() && cumu_cnt_[feaid][tt]+1 == cumu_cnt_[feaid][next->first]) {
                     g = -1.0f/(next->second - val + param_.epsilon2);
                     CHECK_GE(next->second, val);
                 }
                 else {
-                    g = -1.0f/param_.lconcave2;
+                    g = -1.0f/param_.epsilon2;
                 }
                 grad_entry[tt] += param_.lconcave2 * g;
             }
