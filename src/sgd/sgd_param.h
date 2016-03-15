@@ -37,21 +37,23 @@ namespace hazard {
         bool concave_penalty2;
         /** whether do flsa */
         bool flsa;
+        std::string debug;
 
         DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
             DMLC_DECLARE_FIELD(l1).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(l2).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(lconcave1).set_range(0.0f,1e5f).set_default(1);
             DMLC_DECLARE_FIELD(lconcave2).set_range(0.0f,1e5f).set_default(1);
-            DMLC_DECLARE_FIELD(epsilon1).set_range(1e-2f,1e1f).set_default(1);
-            DMLC_DECLARE_FIELD(epsilon2).set_range(1e-2f,1e1f).set_default(1);
+            DMLC_DECLARE_FIELD(epsilon1).set_range(1e-5f,1e2f).set_default(1);
+            DMLC_DECLARE_FIELD(epsilon2).set_range(1e-5f,1e2f).set_default(1);
             DMLC_DECLARE_FIELD(lr).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(eta).set_range(0.0f,1e1f).set_default(1);
             DMLC_DECLARE_FIELD(decay).set_range(0.0f,1.0f).set_default(1);
             DMLC_DECLARE_FIELD(init_hrate).set_default(1e-1);
             DMLC_DECLARE_FIELD(concave_penalty1).set_default(true);
             DMLC_DECLARE_FIELD(concave_penalty2).set_default(true);
-            DMLC_DECLARE_FIELD(flsa).set_default(true);
+            DMLC_DECLARE_FIELD(flsa).set_default(false);
+            DMLC_DECLARE_FIELD(debug).set_default("");
         }
     }; //class SGDUpdaterParam
 

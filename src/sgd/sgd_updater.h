@@ -295,8 +295,8 @@ public:
 
 public:
     SGDUpdater() {
-        starttime_ = std::numeric_limits<time_t>::max();
-        endtime_ = 0.0f;
+        starttime_ = 0.0;
+        endtime_ = 0.0;
     }
     virtual ~SGDUpdater() {}
     KWArgs Init(const KWArgs& kwargs) override {return kwargs;}
@@ -305,10 +305,12 @@ public:
     void InitEpoch(size_t epoch);
     void Update() override {}
     void Update(SGDModel& grad);
-    inline void Exist(feaid_t feaid) {
+    inline void Exist(feaid_t feaid, std::set<time_t>& ord) {
+        auto it = ord.cbegin();
         SGDEntry& entry = model_[feaid];
-        if(entry.Size() == 0)
-            entry[starttime_] = param_.init_hrate;
+        if(entry.Size() == 0) {
+            entry[*it] = param_.init_hrate;
+        }
     }
     std::pair<real_t, real_t> CHazardFea(feaid_t feaid,
                                          time_t censor);
@@ -323,20 +325,21 @@ public:
     void UpdateGradient(feaid_t feaid, SGDEntry& entry);
     void SaveModel(FILE* f);
     void ReadModel(std::string name);
-    inline void SetHrate(real_t hr) {
-        param_.init_hrate = hr;
-    }
+//    inline void SetHrate(real_t hr) {
+//        param_.init_hrate = hr;
+//    }
 
     time_t starttime_;
     time_t endtime_;
     /**
      *  \brief cumulative data count before current time point
      */
-    std::unordered_map<feaid_t, std::unordered_map<time_t, size_t>> cumu_cnt_;
+    std::unordered_map<feaid_t, std::map<time_t, size_t>> cumu_cnt_;
 private:
     SGDModel model_;
     SGDUpdaterParam param_;
     int nthreads_;
+    FILE* debug_;
 }; //class SGDUpdater
 
 } //namespace hazard

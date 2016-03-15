@@ -47,7 +47,7 @@ inline std::pair<real_t, real_t> SGDLearner::GenGrad(uint8_t label,
         real_t rhr = std::get<1>(loss_[x]);
         real_t lcumuhr = std::get<2>(loss_[x]);
         real_t lhr = std::get<3>(loss_[x]);
-        real_t log_interval = LogMinus(lcumuhr, rcumuhr);
+        real_t log_interval = LogMinus(lcumuhr, rcumuhr, "training");
         real_t log_r = -rcumuhr + std::log(rhr);
         real_t log_l = -lcumuhr + std::log(lhr);
         real_t rgrad = -std::exp(log_r - log_interval);

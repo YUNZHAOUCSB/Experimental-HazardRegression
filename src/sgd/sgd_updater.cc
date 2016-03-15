@@ -12,6 +12,8 @@ KWArgs SGDUpdater::Init(const KWArgs& kwargs,
                         const SGDLearnerParam& sgdlparam) {
     nthreads_ = sgdlparam.nthreads;
     KWArgs remain = param_.InitAllowUnknown(kwargs);
+    if(!param_.debug.empty())
+    debug_ = fopen(param_.debug.c_str(), "w");
     return remain;
 }
 
@@ -20,6 +22,11 @@ void SGDUpdater::InitEpoch(size_t epoch) {
 }
 
 void SGDUpdater::ReadModel(std::string name) {
+    for (auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
+        SGDEntry& entry = it->second;
+        entry.w.clear();
+        entry[starttime_] = 0.0;
+    }
     std::ifstream infile(name, std::ifstream::in);
     std::string line;
     feaid_t feaid; time_t tid; real_t val;
@@ -29,6 +36,8 @@ void SGDUpdater::ReadModel(std::string name) {
         std::getline(l, tmp, '\t');
         std::stringstream(tmp) >> feaid;
         SGDEntry& entry = model_[feaid];
+        entry.w.clear();
+        entry[starttime_] = 0.0;
         while(std::getline(l, tmp, '\t')) {
             std::stringstream item(tmp);
             std::string stmp;
@@ -64,10 +73,13 @@ std::pair<real_t, real_t> SGDUpdater::CHazardFea(feaid_t feaid, time_t censor) {
     real_t hcumulative = 0.0f;
     real_t hrate = 0.0f;
     time_t k;
-    entry.GreastLowerBound(censor, k);
-    hrate = entry[k];
     auto it = entry.w.begin();
     auto it_next = entry.w.upper_bound(it->first);
+    auto begin = cumu_cnt_[feaid].cbegin();
+    CHECK_EQ(begin->first, it->first);
+    if(begin->first > censor) return std::make_pair(0.0,0.0);
+    entry.GreastLowerBound(censor, k);
+    hrate = entry[k];
     for (; it_next!=entry.w.cend() && it_next->first <= k; it++, it_next++) {
             hcumulative += (it_next->first - it->first)*it->second;
     }
@@ -215,25 +227,31 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
         }
     }
     // don't write model_entry, but update grad_entry
+    auto it = cumu_cnt_[feaid].begin();
+    auto rit = cumu_cnt_[feaid].rbegin();
+    time_t ss = it->first;
+    time_t ee = rit->first;
     if (param_.concave_penalty2) {
         for (auto e : grad_entry.w) {
             time_t tt = e.first;
+            CHECK_GE(tt,ss);
+            CHECK_LE(tt,ee);
             auto it = model_entry.w.find(tt);
             CHECK_NE(it, model_entry.w.end());
             real_t val = it->second;
             auto prev = --it; it++; auto next = ++it;
             // add concave_penalty2 to grad_entry
             real_t g;
-            if (tt > starttime_) {
+            if (tt == ss) {
+                g = 1.0/(val + param_.epsilon2);
+                grad_entry[tt] += param_.lconcave2 * g;
+            }
+            else {
                 g = 1.0f/(val - prev->second + param_.epsilon2);
                 CHECK_GE(val, prev->second);
                 grad_entry[tt] += param_.lconcave2 * g;
             }
-            else {
-                g = 1.0/(param_.epsilon2);
-                grad_entry[tt] += param_.lconcave2 * g;
-            }
-            if (tt <= endtime_) {
+            if (tt < ee) {
                 if (next != model_entry.w.end() && cumu_cnt_[feaid][tt]+1 == cumu_cnt_[feaid][next->first]) {
                     g = -1.0f/(next->second - val + param_.epsilon2);
                     CHECK_GE(next->second, val);
@@ -257,7 +275,13 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
             model_entry[tt] -= param_.eta * param_.lconcave1 *
                 (1.0/(temp+param_.epsilon1));
         }
+        if(!param_.debug.empty() && feaid==0) {
+            val = param_.eta*val + param_.eta*param_.lconcave1*(1.0/temp+param_.epsilon1);
+            val = -val;
+            fprintf(debug_, "%e:%e\t", tt, val);
+        }
     }
+    if(!param_.debug.empty() && feaid == 0) fprintf(debug_, "\n\n\n");
 }
 
 void SGDUpdater::Update(SGDModel& grad) {

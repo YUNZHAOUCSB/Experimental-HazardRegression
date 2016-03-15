@@ -39,7 +39,7 @@ public:
                 const dmlc::Row<time_t>& d = data[i];
                 uint8_t label = (uint8_t)d.label;
                 if(updater_->endtime_ < d.index[0]) updater_->endtime_ = d.index[0];
-                if (label && updater_->starttime_ > d.index[1]) updater_->starttime_ = d.index[1];
+                //if (label && updater_->starttime_ > d.index[1]) updater_->starttime_ = d.index[1];
                 for (size_t j = 2; j<d.length; j++) {
                     feaid_t feaid = (feaid_t)d.index[j];
                     feat_cnt[feaid] += 1;
@@ -49,15 +49,15 @@ public:
             }
         }
         // if model_in set init_hrate = 0.0f
-        if (!param_.model_in.empty()) {
-            updater_->SetHrate(0.0f);
-        }
+//        if (!param_.model_in.empty()) {
+//            updater_->SetHrate(0.0f);
+//        }
         //construct feat_set_, init updater_->model_
         for (auto f : feat_cnt) {
             feaid_t feaid = f.first;
             if (f.second >= param_.feat_thresh) {
                 feat_set_.insert(feaid);
-                updater_->Exist(feaid);
+                updater_->Exist(feaid, ordinal[feaid]);
             }
         }
         //construct cumu_cnt_
@@ -86,9 +86,10 @@ public:
         return remain;
     }
 
-    inline real_t LogMinus(real_t cumul, real_t cumur) {
+    inline real_t LogMinus(real_t cumul, real_t cumur, std::string type) {
         cumul = -cumul; cumur = -cumur;
         real_t tmp = std::exp(cumur - cumul);
+        if (tmp >= 1.0 && type != "training") return 0.0;
         CHECK_LT(tmp, 1.0f);
         return cumul + std::log(1.0f - tmp);
     }
@@ -100,7 +101,7 @@ public:
             const dmlc::Row<time_t>& d = data[i];
             uint8_t label = (uint8_t) d.label;
             if (label) {
-                res += -LogMinus(std::get<2>(loss_[i]), std::get<0>(loss_[i]));
+                res += -LogMinus(std::get<2>(loss_[i]), std::get<0>(loss_[i]), type);
             } else {
                 res += std::get<0>(loss_[i]);
             }
