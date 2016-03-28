@@ -15,6 +15,7 @@
 #include "data/row_block.h"
 #include <unordered_set>
 #include <set>
+#include <iomanip>
 
 namespace hazard {
 class SGDLearner : public Learner {
@@ -39,12 +40,11 @@ public:
                 const dmlc::Row<time_t>& d = data[i];
                 uint8_t label = (uint8_t)d.label;
                 if(updater_->endtime_ < d.index[0]) updater_->endtime_ = d.index[0];
-                //if (label && updater_->starttime_ > d.index[1]) updater_->starttime_ = d.index[1];
                 for (size_t j = 2; j<d.length; j++) {
                     feaid_t feaid = (feaid_t)d.index[j];
                     feat_cnt[feaid] += 1;
-                    ordinal[feaid].insert((time_t)d.index[0]);
-                    if (label) ordinal[feaid].insert((time_t)d.index[1]);
+                    updater_->Build(feaid, (time_t)d.index[0]);
+                    if (label) updater_->Build(feaid, (time_t)d.index[1]);
                 }
             }
         }
@@ -57,21 +57,21 @@ public:
             feaid_t feaid = f.first;
             if (f.second >= param_.feat_thresh) {
                 feat_set_.insert(feaid);
-                updater_->Exist(feaid, ordinal[feaid]);
+                //updater_->Exist(feaid, ordinal[feaid]);
             }
         }
         //construct cumu_cnt_
-        for (auto e : ordinal) {
-            feaid_t feaid = e.first;
-            if (!feat_set_.count(feaid)) continue;
-            std::set<time_t>& s = e.second;
-            auto it = s.cbegin(); auto it0 = s.cbegin();
-            updater_->cumu_cnt_[feaid][*it] = 0;
-            it++;
-            for (; it!=s.cend(); it++, it0++) {
-                updater_->cumu_cnt_[feaid][*it] = updater_->cumu_cnt_[feaid][*it0] + 1;
-            }
-        }
+//        for (auto e : ordinal) {
+//            feaid_t feaid = e.first;
+//            if (!feat_set_.count(feaid)) continue;
+//            std::set<time_t>& s = e.second;
+//            auto it = s.cbegin(); auto it0 = s.cbegin();
+//            updater_->cumu_cnt_[feaid][*it] = 0;
+//            it++;
+//            for (; it!=s.cend(); it++, it0++) {
+//                updater_->cumu_cnt_[feaid][*it] = updater_->cumu_cnt_[feaid][*it0] + 1;
+//            }
+//        }
         // init loss_
         loss_.clear();
         loss_.resize(param_.batch_size);
@@ -101,7 +101,7 @@ public:
             const dmlc::Row<time_t>& d = data[i];
             uint8_t label = (uint8_t) d.label;
             if (label) {
-                res += -LogMinus(std::get<2>(loss_[i]), std::get<0>(loss_[i]), type);
+                res += -LogMinus(std::get<1>(loss_[i]), std::get<0>(loss_[i]), type);
             } else {
                 res += std::get<0>(loss_[i]);
             }
@@ -111,12 +111,16 @@ public:
     }
 
     void PrintRes(size_t epoch) {
-        LOG(INFO) << "Iter\t" << epoch << "\tTraining\t"
-            << train_loss_ << "\tValidation\t" << val_loss_
+	std::cout << std::fixed;
+	std::cout << std::setprecision(6);
+        std::cout << "Iter\t" << epoch << "\tTraining\t"
+                  << train_loss_*1.0/(real_t)n_train_ << "\tValidation\t"
+                  << val_loss_*1.0/(real_t)n_val_
                   << "\n";
     }
 
     void InitEpoch(size_t epoch) {
+        n_train_ = 0; n_val_ = 0;
         train_loss_ = 0.0f; val_loss_ = 0.0f;
         updater_->InitEpoch(epoch);
     }
@@ -131,6 +135,15 @@ public:
         FILE* f = fopen(name, "w");
         updater_->SaveModel(f);
         fclose(f);
+    }
+
+    void Check() {
+        size_t c=0;
+        for(auto e : updater_->model_.model_map_) {
+            SGDEntry& entry = e.second;
+            c += entry.w.size();
+        }
+        printf("%lu\n", c);
     }
 
     void Complete(size_t epoch, const std::string& task) {
@@ -155,6 +168,8 @@ public:
                          0, 1, param_.batch_size);
         while(reader.Next()) {
             const dmlc::RowBlock<time_t>& data = reader.Value();
+            if (type == "training") n_train_ += data.size;
+            else n_val_ += data.size;
             CalcLoss(data);
             CalcRes(data, type);
             if ("training" == type && task == "train") {
@@ -164,7 +179,7 @@ public:
         }
     }
 
-    std::pair<real_t, real_t> GenGrad(uint8_t label, size_t x);
+    //std::pair<real_t, real_t> GenGrad(uint8_t label, size_t x);
     void CalcLoss(const dmlc::RowBlock<time_t>& data);
     void CalcGrad(const dmlc::RowBlock<time_t>& data);
 
@@ -177,17 +192,17 @@ private:
     /**
      *  \brief
      *   hazard cumulative at right censoring time
-     *   hazard rate at right censoring time
      *   hazard cumulative at left censoring time
-     *   hazard rate at left censoring time
     */
-    std::vector<std::tuple<real_t, real_t, real_t, real_t>> loss_;
+    std::vector<std::tuple<real_t, real_t>> loss_;
     /**
      *  \brief whether a feature in active set
      */
     std::unordered_set<feaid_t> feat_set_;
     real_t train_loss_;
     real_t val_loss_;
+    size_t n_train_;
+    size_t n_val_;
 };  // class SGDLearner
 
 }

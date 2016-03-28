@@ -1,23 +1,24 @@
 import random
+import math
 from math import log
 random.seed()
 
 #model setting
-nData = 100000
-nFeat = 1000
-ratioFeatActive = 0.01
-ratioFeatInData = 0.02
+nData = 1000
+nFeat = 10
+ratioFeatActive = 0.1
+ratioFeatInData = 0.4
 T = 10.0
-pieceWiseHr = [1e-1, 2e-1, 4e-1]
-pieceWiseT = [1.0,4.8,7.0]
+pieceWiseHr = [2e-1]
+pieceWiseT = [4.0]
 ratioTrain = 0.8
 measure = T*0.05
-rPosNeg = 0.9
+rPosNeg = 0.8
 
 #output data and model
-ftrain = open("train", "w")
-fval = open("validation", "w")
-fmodel = open("model", "w")
+ftrain = open("train1", "w")
+fval = open("validation1", "w")
+fmodel = open("model1", "w")
 
 #calculate some numbers based on model setting
 nTrain = int(nData * ratioTrain)
@@ -38,6 +39,7 @@ nPos = 0
 nNeg = 0
 stat = {}
 
+
 # sample hacked time given a data and golden model
 def sampleHackedTime(i):
     Hr = {}
@@ -52,18 +54,18 @@ def sampleHackedTime(i):
             for i in range(nPieceHr):
                 t = hr[f][i]
                 if t not in Hr:
-                    Hr[t] = 0
-                    Hr[t] += pieceWiseHr[i]
+                    Hr[t] = pieceWiseHr[i]
+	    break
     if len(Hr) == 0:
         return T
     rank = sorted(Hr)
-    prev = 0
-    for i in range(len(rank)):
-        Hr[rank[i]] += prev
-        prev = Hr[rank[i]]
+#    prev = 0
+#    for i in range(len(rank)):
+#        Hr[rank[i]] += prev
+#        prev = Hr[rank[i]]
 
     if target not in stat:
-        stat[target] = [0]*len(rank)
+        stat[target] = [0]*(len(rank)+1)
     #sample
     i = 0
     while True:
@@ -77,13 +79,18 @@ def sampleHackedTime(i):
         else:
             i+=1
             if i >= len(rank):
+                stat[target][i]+=1
                 return T
 
 # sample interval censored time given measure accurarcy
 def sample_interval(hackt):
-    sbegin = random.random() * measure
-    lt = max(0, sbegin + hackt - measure)
-    rt = min(T, lt + measure)
+    lt = math.floor(hackt*10)/10
+    rt = lt+0.1
+#    sbegin = random.random() * measure
+#    lt = max(0, sbegin + hackt - measure)
+#    rt = min(T, lt + measure)
+    if lt>=rt or lt<0 or rt>10:
+        print 'error'
     return (rt,lt)
 
 def save_data(start, nd, fw):

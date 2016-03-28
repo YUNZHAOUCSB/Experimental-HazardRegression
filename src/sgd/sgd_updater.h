@@ -312,7 +312,7 @@ public:
             entry[*it] = param_.init_hrate;
         }
     }
-    std::pair<real_t, real_t> CHazardFea(feaid_t feaid,
+    real_t CHazardFea(feaid_t feaid,
                                          time_t censor);
     inline real_t SoftThresh(real_t w);
     void CalcFldpX(SGDEntry&, std::vector<real_t>&, std::vector<time_t>&);
@@ -325,6 +325,9 @@ public:
     void UpdateGradient(feaid_t feaid, SGDEntry& entry);
     void SaveModel(FILE* f);
     void ReadModel(std::string name);
+    inline void Build(feaid_t feaid, time_t t) {
+        model_[feaid][t] = param_.init_hrate;
+    }
 //    inline void SetHrate(real_t hr) {
 //        param_.init_hrate = hr;
 //    }
@@ -335,8 +338,8 @@ public:
      *  \brief cumulative data count before current time point
      */
     std::unordered_map<feaid_t, std::map<time_t, size_t>> cumu_cnt_;
-private:
     SGDModel model_;
+private:
     SGDUpdaterParam param_;
     int nthreads_;
     FILE* debug_;

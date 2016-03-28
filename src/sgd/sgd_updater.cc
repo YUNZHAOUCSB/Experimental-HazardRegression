@@ -22,11 +22,11 @@ void SGDUpdater::InitEpoch(size_t epoch) {
 }
 
 void SGDUpdater::ReadModel(std::string name) {
-    for (auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
-        SGDEntry& entry = it->second;
-        entry.w.clear();
-        entry[starttime_] = 0.0;
-    }
+//    for (auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
+//        SGDEntry& entry = it->second;
+//        entry.w.clear();
+//        entry[starttime_] = 0.0;
+//    }
     std::ifstream infile(name, std::ifstream::in);
     std::string line;
     feaid_t feaid; time_t tid; real_t val;
@@ -48,6 +48,18 @@ void SGDUpdater::ReadModel(std::string name) {
             entry[tid] = val;
         }
     }
+    for(auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
+        SGDEntry& entry = it->second;
+        real_t prev=0.0;
+        for (auto it1 = entry.w.begin(); it1!=entry.w.end(); it1++) {
+            if(it1->second < prev) {
+                it1->second = prev;
+            }
+            else {
+                prev = it1->second;
+            }
+        }
+    }
 }
 
 void SGDUpdater::SaveModel(FILE* f) {
@@ -62,29 +74,28 @@ void SGDUpdater::SaveModel(FILE* f) {
         SGDEntry& entry = model_[feaid];
         fprintf(f, "%d", feaid);
         for (auto o : entry.w) {
+	    if(o.second != 0.0)
             fprintf(f, "\t%e:%e", o.first, o.second);
         }
         fprintf(f, "\n");
     }
 }
 
-std::pair<real_t, real_t> SGDUpdater::CHazardFea(feaid_t feaid, time_t censor) {
+real_t SGDUpdater::CHazardFea(feaid_t feaid, time_t censor) {
     SGDEntry& entry = model_[feaid];
-    real_t hcumulative = 0.0f;
-    real_t hrate = 0.0f;
+    real_t hcumulative = 0.0;
     time_t k;
     auto it = entry.w.begin();
     auto it_next = entry.w.upper_bound(it->first);
-    auto begin = cumu_cnt_[feaid].cbegin();
-    CHECK_EQ(begin->first, it->first);
-    if(begin->first > censor) return std::make_pair(0.0,0.0);
     entry.GreastLowerBound(censor, k);
-    hrate = entry[k];
+    if(it->first >= censor) return censor*it->second;
+    hcumulative += it->first*it->second;
     for (; it_next!=entry.w.cend() && it_next->first <= k; it++, it_next++) {
-            hcumulative += (it_next->first - it->first)*it->second;
+            hcumulative += (it_next->first - it->first)*it_next->second;
     }
-    hcumulative += (censor - it->first) * it->second;
-    return std::make_pair(hcumulative, hrate);
+    if(it_next != entry.w.cend())
+    hcumulative += (censor - it->first) * it_next->second;
+    return hcumulative;
 }
 
 void SGDUpdater::Pool (real_t* y, real_t* w, int i, int j) {
@@ -149,9 +160,9 @@ void SGDUpdater::ProxOperators(feaid_t feaid) {
     SGDEntry& model_entry = model_[feaid];
     std::vector<real_t> x(model_entry.Size());
     std::vector<time_t> k(x.size());
-    std::vector<real_t> w(x.size());
+    std::vector<real_t> w(x.size(),1.0);
     CalcFldpX(model_entry, x, k);
-    CalcFldpW(model_entry, w, feaid);
+    //CalcFldpW(model_entry, w, feaid);
     if (param_.flsa == true)
         IsotonicFLSA(x.data(), x.size(), param_.l2*param_.eta, 5000, w.data());
     else
@@ -163,15 +174,10 @@ void SGDUpdater::StoreChanges(feaid_t feaid, std::vector<real_t>& x
                             , std::vector<time_t>& k) {
     SGDEntry& entry = model_[feaid];
     entry.w.clear();
-    size_t i = 0;
-    real_t prev, cur;
-    prev = SoftThresh(x[i]); entry[k[i]] =  prev; i++;
-    for (; i<x.size(); i++) {
+    real_t cur;
+    for (size_t i=0; i<x.size(); i++) {
         cur = SoftThresh(x[i]);
-        if (prev != cur) {
-            entry[k[i]] = cur;
-            prev = cur;
-        }
+        entry[k[i]] = cur;
     }
 }
 
@@ -219,46 +225,34 @@ void SGDUpdater::IsotonicFLSA(real_t* x,
 void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
     SGDEntry& model_entry = model_[feaid];
     // write model_entry
-    for (auto e : grad_entry.w) {
-        time_t tt = e.first;
-        time_t k;
-        if (!model_entry.GreastLowerBound(tt, k)) {
-            model_entry[tt] = model_entry[k];
-        }
-    }
+//    for (auto e : grad_entry.w) {
+//        time_t tt = e.first;
+//        time_t k;
+//        if (!model_entry.GreastLowerBound(tt, k)) {
+//            model_entry[tt] = model_entry[k];
+//        }
+//    }
     // don't write model_entry, but update grad_entry
-    auto it = cumu_cnt_[feaid].begin();
-    auto rit = cumu_cnt_[feaid].rbegin();
-    time_t ss = it->first;
-    time_t ee = rit->first;
+    time_t ss = (model_entry.w.begin())->first;
+    time_t ee = (model_entry.w.rbegin())->first;
     if (param_.concave_penalty2) {
         for (auto e : grad_entry.w) {
             time_t tt = e.first;
-            CHECK_GE(tt,ss);
-            CHECK_LE(tt,ee);
             auto it = model_entry.w.find(tt);
+	    auto backit = it;
             CHECK_NE(it, model_entry.w.end());
             real_t val = it->second;
-            auto prev = --it; it++; auto next = ++it;
+            auto prev = --backit; auto next = ++backit;
             // add concave_penalty2 to grad_entry
             real_t g;
-            if (tt == ss) {
-                g = 1.0/(val + param_.epsilon2);
-                grad_entry[tt] += param_.lconcave2 * g;
-            }
-            else {
+            if (tt > ss) {
                 g = 1.0f/(val - prev->second + param_.epsilon2);
                 CHECK_GE(val, prev->second);
                 grad_entry[tt] += param_.lconcave2 * g;
             }
             if (tt < ee) {
-                if (next != model_entry.w.end() && cumu_cnt_[feaid][tt]+1 == cumu_cnt_[feaid][next->first]) {
-                    g = -1.0f/(next->second - val + param_.epsilon2);
-                    CHECK_GE(next->second, val);
-                }
-                else {
-                    g = -1.0f/param_.epsilon2;
-                }
+		g = -1.0f/(next->second - val + param_.epsilon2);
+		CHECK_GE(next->second, val);
                 grad_entry[tt] += param_.lconcave2 * g;
             }
         }
