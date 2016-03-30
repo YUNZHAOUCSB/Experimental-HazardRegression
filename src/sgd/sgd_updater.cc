@@ -22,11 +22,12 @@ void SGDUpdater::InitEpoch(size_t epoch) {
 }
 
 void SGDUpdater::ReadModel(std::string name) {
-//    for (auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
-//        SGDEntry& entry = it->second;
-//        entry.w.clear();
-//        entry[starttime_] = 0.0;
-//    }
+    for (auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
+        SGDEntry& entry = it->second;
+        for (auto it1=entry.w.begin();it1!=entry.w.end();it1++) {
+            it1->second = 0.0;
+        }
+    }
     std::ifstream infile(name, std::ifstream::in);
     std::string line;
     feaid_t feaid; time_t tid; real_t val;
@@ -36,8 +37,6 @@ void SGDUpdater::ReadModel(std::string name) {
         std::getline(l, tmp, '\t');
         std::stringstream(tmp) >> feaid;
         SGDEntry& entry = model_[feaid];
-        entry.w.clear();
-        entry[starttime_] = 0.0;
         while(std::getline(l, tmp, '\t')) {
             std::stringstream item(tmp);
             std::string stmp;
@@ -45,7 +44,9 @@ void SGDUpdater::ReadModel(std::string name) {
             std::stringstream(stmp) >> tid;
             std::getline(item, stmp, ':');
             std::stringstream(stmp) >> val;
-            entry[tid] = val;
+            auto pit = entry.w.upper_bound(tid);
+            tid = pit->first;
+            if(pit!=entry.w.end()) entry[tid] = val;
         }
     }
     for(auto it=model_.model_map_.begin(); it!=model_.model_map_.end(); it++) {
