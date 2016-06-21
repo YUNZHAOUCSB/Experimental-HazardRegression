@@ -38,6 +38,8 @@ namespace hazard {
         /** whether do flsa */
         bool flsa;
         std::string debug;
+        real_t alpha;
+        real_t beta;
 
         DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
             DMLC_DECLARE_FIELD(l1).set_range(0.0f,1e5f).set_default(1);
@@ -54,6 +56,8 @@ namespace hazard {
             DMLC_DECLARE_FIELD(concave_penalty2).set_default(true);
             DMLC_DECLARE_FIELD(flsa).set_default(false);
             DMLC_DECLARE_FIELD(debug).set_default("");
+            DMLC_DECLARE_FIELD(alpha).set_default(1e-1);
+            DMLC_DECLARE_FIELD(beta).set_default(1e0);
         }
     }; //class SGDUpdaterParam
 
@@ -62,6 +66,8 @@ namespace hazard {
         std::string data_in;
         /** \brief evaluation data */
         std::string val_data;
+        /** \brief test data */
+        std::string test_data;
         /** \breif data format: libsvm */
         std::string data_format;
         /** \brief output model */
@@ -78,6 +84,7 @@ namespace hazard {
             eliminating features in advance while
             working with sparsity
         */
+		real_t epsilon;
         uint32_t feat_thresh;
         uint32_t max_num_epochs;
         uint32_t batch_size;
@@ -87,6 +94,7 @@ namespace hazard {
         DMLC_DECLARE_PARAMETER(SGDLearnerParam) {
             DMLC_DECLARE_FIELD(data_in);
             DMLC_DECLARE_FIELD(val_data).set_default("");
+            DMLC_DECLARE_FIELD(test_data).set_default("");
             DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
             DMLC_DECLARE_FIELD(model_out).set_default("");
             DMLC_DECLARE_FIELD(model_in).set_default("");
@@ -94,6 +102,7 @@ namespace hazard {
             DMLC_DECLARE_FIELD(updater_type).set_default("sgd");
             DMLC_DECLARE_FIELD(combination).set_default(true);
             DMLC_DECLARE_FIELD(feat_thresh).set_default(10);
+            DMLC_DECLARE_FIELD(epsilon).set_default(1e-4);
             DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
             DMLC_DECLARE_FIELD(batch_size).set_default(1);
             DMLC_DECLARE_FIELD(nthreads).set_default(DEFAULT_NTHREADS);

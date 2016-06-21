@@ -5,31 +5,32 @@ random.seed()
 
 #model setting
 nData = 1000
-nFeat = 10
-ratioFeatActive = 0.1
-ratioFeatInData = 0.4
+nFeat = 20
+ratioFeatActive = 0.2
+ratioFeatInData = 0.3
 T = 10.0
-pieceWiseHr = [2e-1]
-pieceWiseT = [4.0]
+nPiece=3
+hrMean = 2e-1
+hrVar = 0.1
 ratioTrain = 0.8
-measure = T*0.05
-rPosNeg = 0.8
+rPosNeg = 0.2
+epsilon=1e-3
 
 #output data and model
-ftrain = open("train1", "w")
-fval = open("validation1", "w")
-fmodel = open("model1", "w")
+ftrain = open("train", "w")
+fval = open("validation", "w")
+fmodel = open("model", "w")
 
-#calculate some numbers based on model setting
+#init setting
 nTrain = int(nData * ratioTrain)
 nVal = nData - nTrain
 nFeatActive = int(nFeat * ratioFeatActive)
 nFeatNonAct = nFeat - nFeatActive
 nFeatInData = int(nFeat * ratioFeatInData) # each data contain Uniform(nFeatInData,2*nFeatIndata-1) number of feats
-nPieceHr = len(pieceWiseHr)
+pieceWiseHr = []
+pieceWiseT = []
+interv=float(T/nPiece)
 
-# hazard rate for each feature, with len = nPiece
-hr = {}
 # hacked time for each data
 bl = {}
 # data set
@@ -41,31 +42,52 @@ stat = {}
 
 
 # sample hacked time given a data and golden model
-def sampleHackedTime(i):
+def sampleHackedTime(id):
+    d = data[id]
     Hr = {}
     rank = []
-    d = data[i]
-    target = 0
     for f in d:
-        if f not in hr:
+        if f >= nFeatActive:
             continue
         else:
-            target = f
-            for i in range(nPieceHr):
-                t = hr[f][i]
-                if t not in Hr:
-                    Hr[t] = pieceWiseHr[i]
-	    break
+            if len(Hr) == 0:
+                for i in range(nPiece):
+                    Hr[pieceWiseT[f][i]] = pieceWiseHr[f][i]
+            else:
+                pp = 0
+                for i in range(nPiece):
+                    t = pieceWiseT[f][i]
+                    r = pieceWiseHr[f][i]
+                    if t in Hr:
+                        for k in sorted(Hr):
+                            if k>=t:
+                                Hr[k]+=r-pp
+                    else:
+                        prev = t
+                        for k in sorted(Hr):
+                            if k > t:
+                                break
+                            else:
+                                prev = k
+                        if prev in Hr:
+                            Hr[t] = Hr[prev]
+                        else:
+                            Hr[t] = 0
+                        for k in sorted(Hr):
+                            if k>=t:
+                                Hr[k]+=r-pp
+                    pp = r
     if len(Hr) == 0:
         return T
     rank = sorted(Hr)
-#    prev = 0
-#    for i in range(len(rank)):
-#        Hr[rank[i]] += prev
-#        prev = Hr[rank[i]]
 
-    if target not in stat:
-        stat[target] = [0]*(len(rank)+1)
+    #debug
+    if len(Hr) != 0:
+        print '%d'%id
+        for t in sorted(Hr):
+            print '\t%e:%e'%(t,Hr[t])
+    print '\n\n\n'
+
     #sample
     i = 0
     while True:
@@ -74,21 +96,16 @@ def sampleHackedTime(i):
             continue
         t = -log(z)/Hr[rank[i]]
         if (i+1>=len(rank) and t+rank[i]<=T) or (i+1<len(rank) and t+rank[i] <= rank[i+1]):
-            stat[target][i] += 1
             return t+rank[i]
         else:
             i+=1
             if i >= len(rank):
-                stat[target][i]+=1
                 return T
 
 # sample interval censored time given measure accurarcy
 def sample_interval(hackt):
     lt = math.floor(hackt*10)/10
     rt = lt+0.1
-#    sbegin = random.random() * measure
-#    lt = max(0, sbegin + hackt - measure)
-#    rt = min(T, lt + measure)
     if lt>=rt or lt<0 or rt>10:
         print 'error'
     return (rt,lt)
@@ -112,34 +129,40 @@ def save_data(start, nd, fw):
     fw.close()
 
 def save_model(fw):
-    for k in sorted(hr):
+    for k in range(nFeatActive):
         fw.write("%d"%k)
-        for t in range(nPieceHr):
-            fw.write("\t%e:%e"%(hr[k][t],pieceWiseHr[t]))
+        for t in range(nPiece):
+            fw.write("\t%e:%e"%(pieceWiseT[k][t],pieceWiseHr[k][t]))
         fw.write("\n")
     fw.close()
 
 # generate hazard rate function for each active feature
 def genHr():
     for i in range(nFeatActive):
-        hr[i] = []
-        for j in range(nPieceHr):
-            hr[i].append(pieceWiseT[j])
-#    	    while True:
-#                tmp = random.random()*T
-#                if tmp not in hr[i]:
-#                    hr[i].append(tmp)
-#                    break
-        hr[i].sort()
+        pieceWiseT.append([])
+        for j in range(nPiece):
+            l=j*interv
+            pieceWiseT[i].append(l+random.random()*interv)
+    for i in range(nFeatActive):
+        pieceWiseHr.append([])
+        for j in range(nPiece):
+            pieceWiseHr[i].append(max(random.gauss(hrMean,hrVar),epsilon))
+        pieceWiseHr[i].sort()
 
 # generate data
 def genData():
     for i in range(nData):
         data.append([])
         data[i] = []
+	if rPosNeg > random.random():
+	    np = random.randint(1,nFeatActive)
+	    for k in range(np):
+		while True:
+		    tmpf = random.randint(0,nFeatActive-1)
+		    if tmpf not in data[i]:
+			data[i].append(tmpf)
+			break
         avrgFeat = random.randint(nFeatInData, nFeatInData*2-1)
-        if random.random() >= rPosNeg:
-            data[i].append(random.randint(0,nFeatActive-1))
         for j in range(avrgFeat):
             while True:
                 tmpf = random.randint(nFeatActive, nFeat-1)
@@ -163,10 +186,6 @@ def main():
 def printStat():
     global nPos, nNeg
     print "#Pos = %d, #Neg = %d\n"%(nPos, nNeg)
-    for f in stat:
-        for i in range(len(stat[f])):
-            print stat[f][i],
-        print '\n'
 
 
 if __name__ == "__main__":
