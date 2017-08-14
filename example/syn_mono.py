@@ -5,8 +5,8 @@ random.seed()
 
 #model setting
 nData = 1000
-nFeat = 20
-ratioFeatActive = 0.2
+nFeat = 10
+ratioFeatActive = 0.1
 ratioFeatInData = 0.3
 T = 10.0
 nPiece=3

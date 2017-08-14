@@ -250,7 +250,7 @@ if(tmp==0.0) n_bad_++;
         else if(type == "validation") filename = param_.val_data;
         else filename = param_.test_data;
         if(filename.empty()) return;
-		if((epoch%2==0) && task == "train" && type == "training") {
+		if((epoch%5==0) && task == "train" && type == "training") {
 		//if(task == "train" && type == "training") {
 			SVRG(filename);
 			BatchIter reader(filename, param_.data_format,

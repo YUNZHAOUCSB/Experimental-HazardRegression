@@ -206,18 +206,18 @@ void SGDUpdater::ProxOperators(feaid_t feaid) {
     CalcFldpX(model_entry, x, k);
 
     if(param_.flsa == true) {
-        real_t tmp = 0.0;
-        auto it=model_entry.w.begin();
-        auto it_next=model_entry.w.begin();
-        it_next++;
-        for(;it_next!=model_entry.w.end();it_next++,it++) {
-          real_t z=std::get<3>(it->second);
-          tmp += param_.alpha * 1.0/(param_.beta + std::sqrt(z));
-        }
-        tmp=tmp*1.0/(model_entry.Size()-1.0);
-        FLSA(x.data(), x.size()-1, tmp*param_.l2, 5000);
+//        real_t tmp = 0.0;
+//        auto it=model_entry.w.begin();
+//        auto it_next=model_entry.w.begin();
+//        it_next++;
+//        for(;it_next!=model_entry.w.end();it_next++,it++) {
+//          real_t z=std::get<3>(it->second);
+//          tmp += param_.alpha * 1.0/(param_.beta + std::sqrt(z));
+//        }
+//        tmp=tmp*1.0/(model_entry.Size()-1.0);
+//        FLSA(x.data(), x.size()-1, tmp*param_.l2, 5000);
 
-        //FLSA(x.data(), x.size()-1, param_.eta*param_.l2, 5000);
+        FLSA(x.data(), x.size()-1, param_.eta*param_.l2, 5000);
     }
     //CalcFldpW(model_entry, w, feaid);
 //    if (param_.flsa == true)
@@ -672,8 +672,8 @@ void SGDUpdater::UpdateGradient(feaid_t feaid, SGDEntry& grad_entry) {
         z+=val*val;
         // update gradient
         CHECK_GT(z,0.0);
-        std::get<0>(a) -= param_.alpha * 1.0/(param_.beta+std::sqrt(z)) * val;
-        //std::get<0>(a) -= param_.eta * val;
+        //std::get<0>(a) -= param_.alpha * 1.0/(param_.beta+std::sqrt(z)) * val;
+        std::get<0>(a) -= param_.eta * val;
         // update concave_penalty1
         if (param_.concave_penalty1) {
             std::get<0>(model_entry[tt]) -= param_.eta * param_.lconcave1 *
