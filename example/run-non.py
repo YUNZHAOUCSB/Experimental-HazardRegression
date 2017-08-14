@@ -9,8 +9,8 @@ args=parser.parse_args()
 
 task="train"
 model_out="toy"
-data_in="train_non"
-val_data="validation_non"
+data_in="train"
+val_data="validation"
 nthreads=8
 lr=1e-4
 l1=1e-3

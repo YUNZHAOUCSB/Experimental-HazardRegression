@@ -1,4 +1,4 @@
-gname="model_non"
+gname="model"
 gf = file(gname, open="r")
 gLines=readLines(gf, n=10)
 ename = "toy_100"

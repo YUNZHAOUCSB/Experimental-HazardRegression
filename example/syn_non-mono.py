@@ -17,9 +17,9 @@ ratioTrain = 0.8
 epsilon=1e-3
 
 #output data and model
-ftrain = open("train_non", "w")
-fval = open("validation_non", "w")
-fmodel = open("model_non", "w")
+ftrain = open("train", "w")
+fval = open("validation", "w")
+fmodel = open("model", "w")
 
 #init setting
 nTrain = int(nData * ratioTrain)
