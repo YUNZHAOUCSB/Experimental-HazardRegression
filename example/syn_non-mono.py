@@ -4,7 +4,7 @@ from math import log
 random.seed()
 
 #model setting
-nData = 1000
+nData = 10000
 nFeat = 10
 ratioFeatActive = 0.1
 ratioFeatInData = 0.3
@@ -133,6 +133,7 @@ def save_model(fw):
         fw.write("%d"%k)
         for t in range(nPiece):
             fw.write("\t%e:%e"%(pieceWiseT[k][t],pieceWiseHr[k][t]))
+        fw.write("\t%e:%e"%(10, pieceWiseHr[k][-1]))
         fw.write("\n")
     fw.close()
 

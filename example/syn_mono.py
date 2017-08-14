@@ -133,6 +133,7 @@ def save_model(fw):
         fw.write("%d"%k)
         for t in range(nPiece):
             fw.write("\t%e:%e"%(pieceWiseT[k][t],pieceWiseHr[k][t]))
+        fw.write("\t%e:%e"%(10, pieceWiseHr[k][-1]))
         fw.write("\n")
     fw.close()
 
